@@ -12,6 +12,9 @@ Rule: a vendor name appears once per category. Real vendors don't run the same
 shop in several cities, so the demo data doesn't either.
 """
 
+import json
+from pathlib import Path
+
 from sqlalchemy import select
 
 from app.db import SessionLocal
@@ -67,9 +70,10 @@ CITIES = [
 
 # ---------- Demo vendors ----------
 #
-# Prices run from high to low in small, even steps, so moving a slider almost
-# always lets a vendor in or out of a row. Each step is the same percentage
-# (a ratio ladder), so cheap and expensive vendors are equally dense.
+# 20 vendors per subcategory, 480 in all. Prices run from high to low in small,
+# even steps, so moving a slider almost always lets a vendor in or out of a row.
+# Each step is the same percentage (a ratio ladder), so cheap and expensive
+# vendors are equally dense.
 
 
 def price_ladder(high: int, low: int, count: int, step: int) -> list[int]:
@@ -78,108 +82,209 @@ def price_ladder(high: int, low: int, count: int, step: int) -> list[int]:
     return [round(high * ratio**i / step) * step for i in range(count)]
 
 
-# Every category matches by city, so the demo data covers three cities in full:
-# Taipei, Taichung and Kaohsiung. Other cities show the empty state.
-
-# Venues: each city has its own list (per table, NT$).
-VENUE_CITIES = {
-    'taipei': (68_000, 12_000, [
-        'The Grand Hall', 'Crown Banquet', 'Garden House', 'Silver Lake Hall', 'Orchid Palace',
-        'City Terrace', 'Jade Pavilion', 'Lotus Court', 'River Pavilion', 'Bamboo House',
-        'Corner Banquet', 'Small Feast Room',
-    ]),
-    'taichung': (55_000, 10_000, [
-        'Maple Court', 'Grand Taichung Hall', 'Lantern Hall', 'Cedar Pavilion', 'Moonlight Banquet',
-        'Willow Banquet', 'Park View Hall', 'Golden Rice Hall', 'Harvest Room', 'Tea Garden Hall',
-        'Hometown Banquet', 'Little Lantern Room',
-    ]),
-    'kaohsiung': (52_000, 9_000, [
-        'Harbour Grand', 'Ocean Crown Hall', 'Sunset Pier', 'Coral Banquet', 'Lighthouse Hall',
-        'Palm Hall', 'Bay Terrace', 'Pearl Room', 'Seaside Room', 'Breeze Banquet',
-        'Port Kitchen Hall', 'Sandbar Room',
-    ]),
-}
-
-# The other categories: (highest, lowest, unit, step, Taipei names), at Taipei prices.
-# Taichung and Kaohsiung get their own names (OTHER_CITY_NAMES) and prices (CITY_PRICE_SCALE).
-OTHER_CATEGORIES = {
-    'photography': (320_000, 18_000, 'event', 1_000, [
-        'Lumen Studio', 'Silver Frame', 'Frame & Field', 'Still Moments', 'Golden Hour Co.',
-        'Paper Lens', 'North Light', 'Daydream Films', 'Little Reel', 'Field Notes Film',
-        'Two Hearts Photo', 'Open Shutter', 'Window Light', 'Kind Eye Studio', 'Snapshot Day',
-        'First Frame',
-    ]),
-    'attire': (300_000, 22_000, 'event', 1_000, [
-        'Atelier Blanc', 'Maison Vela', 'Couture Lane', 'Silk Row', 'The Tailor House',
-        'Ivory Lane', 'Pearl & Thread', 'Lace & Linen', 'Velvet Room', 'Thread Studio',
-        'White Petal', 'Satin Corner', 'Simple Vow', 'Daily Dress', 'Sew Sweet',
-        'Borrowed Blue',
-    ]),
-    'bridal-styling': (150_000, 8_000, 'event', 1_000, [
-        'Glow Room', 'Atelier Rouge', 'Petal Beauty', 'Muse Studio', 'Soft Focus',
-        'Silk Touch', 'Blush Hour', 'Rose Water', 'Gloss & Grace', 'Fine Line Makeup',
-        'Bloom Beauty', 'Morning Dew', 'Hair Ribbon', 'Little Brush', 'Fresh Face',
-        'Quick Glow',
-    ]),
-    'hosting': (150_000, 8_000, 'event', 1_000, [
-        'North Plan Co.', 'Grand Toast', 'Vow & Co.', 'Day Of Studio', 'The Toast Host',
-        'Bright Stage', 'Cue Card', 'Open Floor', 'Joy Planners', 'Warm Mic',
-        'Ribbon Events', 'Small Talk Hosts', 'Easy Day', 'Hello Host', 'Friendly Mic',
-        'Plan Lite',
-    ]),
-    'favors': (1_600, 220, 'guest', 10, [
-        'Sweet Keep', 'Royal Crumb', 'Golden Crumb', 'Paper & Honey', 'Thank You Box',
-        'Little Tokens', 'Moon Bakery', 'Bean & Bloom', 'Almond House', 'Plain Sugar',
-        'Honey Jar', 'Tea Cake Co.', 'Small Joys', 'Butter Bite', 'Crumbs & Co.',
-        'Tiny Treats',
-    ]),
-}
-
+# Demo vendors cover three cities: Taipei, Taichung and Kaohsiung. Other cities
+# show the empty state. Vendors take turns between the three in price order, so
+# every city gets the full price range. Prices outside Taipei are a little lower.
+DEMO_CITIES = ['taipei', 'taichung', 'kaohsiung']
 CITY_PRICE_SCALE = {'taipei': 1.0, 'taichung': 0.9, 'kaohsiung': 0.85}
 
-# Names outside Taipei: one word per vendor plus a word for the category,
-# so every city shows its own vendors ("Amber Studio", "Birch Films", ...).
-OTHER_CITY_WORDS = {
-    'taichung': ['Amber', 'Birch', 'Clover', 'Dune', 'Ember', 'Fern', 'Garnet', 'Hazel',
-                 'Iris', 'Juniper', 'Kite', 'Linden', 'Marigold', 'Nectar', 'Oak', 'Poppy'],
-    'kaohsiung': ['Quill', 'Reef', 'Saffron', 'Tide', 'Umber', 'Vale', 'Wren', 'Yarrow',
-                  'Zephyr', 'Azure', 'Bay', 'Coral', 'Drift', 'Harbor', 'Isle', 'Lagoon'],
+# Per subcategory: (highest, lowest) at Taipei prices, then 20 names.
+# The price unit and rounding step come from the category (CATEGORY_UNITS).
+# Names are made up. A name appears once per category.
+DEMO_VENDORS = {
+    # Venues: NT$ per table.
+    'hotel-banquet': ((68_000, 28_000), [
+        'Aurelia Grand Hotel', 'Velmont Hotel', 'The Orchid Crest', 'Solenne Hotel', 'Linden Park Hotel',
+        'Starling Hotel', 'Ivoria Hotel', 'Halcyon Hotel', 'Royal Camellia Hotel', 'The Bellmoor',
+        'Wisteria Grand', 'Eastgate Hotel', 'The Ashcombe', 'Crystal Bay Hotel', 'Maplewood Hotel',
+        'Silverleaf Hotel', 'Rosemont Hotel', 'Northstar Hotel', 'Jadecourt Hotel', 'The Peony Hotel',
+    ]),
+    'wedding-hall': ((30_000, 16_000), [
+        'Everbloom Hall', 'Promise Wedding Hall', 'Twin Hearts Hall', 'Lantern Hall', 'Union Hall',
+        'Ever After Hall', 'Golden Bell Hall', 'Petal Hall', 'Joyful Union Hall', 'Moonrise Hall',
+        'Blossom Hall', 'Forever Hall', 'Grand Vow Hall', 'Harmony Hall', 'Celeste Hall',
+        'Rosewood Hall', 'First Light Hall', 'Willow Hall', 'Two Rings Hall', 'Happy Day Hall',
+    ]),
+    'restaurant': ((30_000, 10_000), [
+        'Jade Table', 'The Long Table', 'Copper Pot', 'Lotus Kitchen', 'Bamboo Court',
+        'Red Lantern House', 'Little Feast', 'Harvest Table', 'Old Tea House', 'Ginger & Garlic',
+        'Plum Blossom Kitchen', 'River Bistro', 'Hearth & Home', 'Five Flavors', 'Seaside Kitchen',
+        'Rice & Salt', 'The Courtyard Kitchen', 'Golden Wok', 'Morning Market Kitchen', 'Sesame House',
+    ]),
+    'outdoor-garden': ((55_000, 18_000), [
+        'Green Meadow Garden', 'Hillside Estate', 'Willow Creek Garden', 'Sunflower Farm', 'Camphor Grove',
+        'Lakeside Lawn', 'Wildflower Estate', 'Rose Garden Manor', 'Tea Hill Terrace', 'Pine Ridge Garden',
+        'Orchard House', 'Secret Garden Venue', 'Riverbank Garden', 'Mountain View Lawn', 'Bamboo Grove Garden',
+        'Firefly Valley', 'Olive Terrace', 'Butterfly Garden', 'Seabreeze Lawn', 'Ivy Manor',
+    ]),
+    # Photography & Video: NT$ per event.
+    'photographer': ((120_000, 22_000), [
+        'Lumen Studio', 'Still Moments', 'Golden Hour Co.', 'North Light', 'Window Light',
+        'Kind Eye Studio', 'First Frame', 'Silver Frame', 'Paper Lens', 'Open Shutter',
+        'Soft Grain', 'True Colors Photo', 'Candid Day', 'Moments & Co.', 'Lightbox Studio',
+        'Honest Frame', 'Warm Tone Photo', 'Shutter & Bloom', 'Little Moments', 'Clear Sky Photo',
+    ]),
+    'videographer': ((150_000, 28_000), [
+        'Daydream Films', 'Little Reel', 'Field Notes Film', 'Slow Motion Co.', 'Reel Love',
+        'Frame by Frame', 'Story Reel', 'Cinema Vow', 'Super 8 Studio', 'Golden Reel',
+        'Moving Pictures Co.', 'Love Story Films', 'Open Reel', 'Wide Shot Films', 'Highlight Films',
+        'Moonlight Films', 'Silver Screen Vows', 'Rolling Films', 'Take One Studio', 'Ever Films',
+    ]),
+    'pre-wedding-studio': ((320_000, 38_000), [
+        'Atelier Lune', 'Muse Bridal Studio', 'Velvet Studio', 'Dreamy Days Studio', 'Ivory Studio',
+        'Blush Bridal Photo', 'Maison Photo', 'Rose Studio', 'Cloud Nine Studio', 'Serendipity Studio',
+        'Pearl Studio', 'Lavender Studio', 'Petal Studio', 'Amour Studio', 'Sweet Days Studio',
+        'Stardust Studio', 'Ocean Blue Studio', 'Moon River Studio', 'Garden Muse Studio', 'Forever Young Studio',
+    ]),
+    'photo-booth': ((36_000, 8_000), [
+        'Snap Happy Booth', 'Say Cheese Booth', 'Pop & Print', 'Smile Box', 'Flash Booth',
+        'Instant Joy', 'Click Click Booth', 'Print Party', 'Booth & Co.', 'Happy Snaps',
+        'Selfie Station', 'Fun Frame Booth', 'Pose Box', 'Little Flash', 'Party Pics',
+        'Strip Studio', 'Photo Strip Co.', 'Glitter Booth', 'Shutter Box', 'Cheese Corner',
+    ]),
+    # Wedding Attire: NT$ per event.
+    'gown-rental': ((120_000, 22_000), [
+        'Atelier Blanc', 'Ivory Lane', 'White Petal', 'Borrowed Blue', 'Simple Vow',
+        'Daily Dress', 'Lace & Linen', 'Satin Corner', 'Bridal Closet', 'Gown Library',
+        'Dress for a Day', 'Veil & Lace', 'Second Bloom Bridal', 'Tulle House', 'Wedding Wardrobe',
+        'Lily Bridal', "Bride's Closet", 'Grace Gowns', 'Silk Rental', 'Blue Ribbon Bridal',
+    ]),
+    'custom-gowns': ((300_000, 75_000), [
+        'Maison Vela', 'Couture Lane', 'Silk Row', 'Pearl & Thread', 'Velvet Room',
+        'Thread Studio', 'Sew Sweet', 'Atelier Seraphine', 'Noor Couture', 'Haute Lace',
+        'Ivory Atelier', 'Needle & Bloom', 'Couture Bloom', 'Atelier Mei', 'Golden Needle',
+        'Studio Ivoire', 'Lumière Couture', 'Tailored Dreams', 'The Lace Room', 'Bespoke Bride',
+    ]),
+    'suits': ((60_000, 12_000), [
+        'The Tailor House', 'Sharp & Co.', "Gentleman's Row", 'Fine Cut Tailors', 'Groom Room',
+        'Bespoke Lane', 'Navy & Grey', 'Lapel Studio', 'Tux & Tie', 'Well Suited',
+        'Button Up', 'Classic Cut', 'Savile Studio', 'The Fitting Room', 'Tie & Cuff',
+        'Linen & Wool', 'Dapper Groom', 'Cufflink Co.', 'Steel Grey Tailors', 'The Suit Shop',
+    ]),
+    'accessories': ((30_000, 5_000), [
+        'Little Tiara', 'Pearl Box', 'Veil Studio', 'Something Blue', 'Crystal Comb',
+        'Silver Veil', 'Bridal Jewel Box', 'Ribbon & Pearl', 'Golden Hairpin', 'Garter & Lace',
+        'Dainty Things', 'Sparkle Studio', 'Petite Pearl', 'Moonstone Bridal', 'Lace Gloves Co.',
+        'Ivory Ribbon', 'Diamond Dust', 'Hairpin House', 'Bridal Trinkets', 'Shimmer & Shine',
+    ]),
+    # Bridal Styling: NT$ per event.
+    'bridal-stylist': ((150_000, 28_000), [
+        'Glow Room', 'Atelier Rouge', 'Muse Styling', 'Soft Focus Styling', 'Blush Hour',
+        'Gloss & Grace', 'Bloom Beauty', 'Bridal Muse', 'Grace Styling', 'The Bride Studio',
+        'Pretty Day', 'Rosy Cheeks Studio', 'Lovely Bride', 'Belle Styling', 'Morning Glow',
+        'Little Muse', 'Elegance Styling', 'Charm Studio', 'Golden Bride', 'Bride & Glow',
+    ]),
+    'makeup-artist': ((40_000, 8_000), [
+        'Petal Beauty', 'Silk Touch', 'Fine Line Makeup', 'Little Brush', 'Fresh Face',
+        'Quick Glow', 'Rose Water', 'Brush & Blush', 'Flawless Studio', 'Pink Palette',
+        'Beauty Bar', 'Glam Room', 'Natural Glow', 'Lash & Brow', 'Pure Beauty',
+        'Contour Co.', 'Velvet Lips', 'Radiant Studio', 'Makeup by Mia', 'Bare Beauty',
+    ]),
+    'hair-studio': ((25_000, 6_000), [
+        'Hair Ribbon', 'Updo Studio', 'Braids & Blooms', 'Silk Strands', 'Curl Studio',
+        'The Hair Loft', 'Crown & Curl', 'Bridal Locks', 'Twist Studio', 'Hair Story',
+        'Shine Salon', 'Soft Waves', 'Pin & Curl', 'Chignon Studio', 'Hair Bloom',
+        'Golden Locks', 'Hairpin Salon', 'Sweet Curls', 'Ribbon Salon', 'Wave Room',
+    ]),
+    'nails': ((5_000, 1_000), [
+        'Polished', 'Nail Nook', 'Pink Tips', 'Lacquer Lab', 'Gel & Grace',
+        'Nail Bloom', 'Little Nails', 'Mani Studio', 'Glossy Nails', 'Petal Nails',
+        'Pearl Nails', 'French Tips', 'Nail Story', 'Shine Nails', 'Velvet Nails',
+        'Coral Nails', 'Blush Nails', 'Nail Garden', 'Crystal Nails', 'Tiny Tips',
+    ]),
+    # Hosting & Planning: NT$ per event.
+    'wedding-planner': ((150_000, 35_000), [
+        'North Plan Co.', 'Vow & Co.', 'Joy Planners', 'Ribbon Events', 'Plan Lite',
+        'Happily Planned', 'Two Hearts Events', 'The Wedding Edit', 'Blueprint Weddings', 'Ever After Planning',
+        'Bloom Events', 'Petal & Plan', 'Big Day Co.', 'The Planning Room', 'Love & Logistics',
+        'Dream Day Planners', 'Golden Thread Events', 'Simply Wed', 'Wedding Notes', 'Paper Heart Events',
+    ]),
+    'emcee': ((40_000, 8_000), [
+        'Grand Toast', 'The Toast Host', 'Warm Mic', 'Small Talk Hosts', 'Hello Host',
+        'Friendly Mic', 'Golden Voice', 'Mic Drop Hosts', 'Cheers Hosting', 'Clear Voice',
+        'Happy Host', 'Stage Left', 'Spotlight Hosts', 'Toast & Talk', 'Smooth Talk',
+        'Big Smile Hosts', 'Voice of Joy', 'Best Words', 'Charming Host', 'Word & Wit',
+    ]),
+    'day-of-coordinator': ((50_000, 12_000), [
+        'Day Of Studio', 'Easy Day', 'Cue Card', 'Open Floor', 'On Cue',
+        'Smooth Day', 'Run of Show', 'Calm Day Co.', 'Timeline Co.', 'Checklist Co.',
+        'All Set Weddings', 'No Worries Day', 'Helping Hands', 'Steady Day', 'Right on Time',
+        'Peace of Mind Co.', 'Ready Set Wed', 'Clipboard Co.', 'Day Keepers', 'Just Breathe Weddings',
+    ]),
+    'live-music': ((80_000, 15_000), [
+        'Bright Stage', 'Silver Strings', 'Golden Brass', 'Jazz & Vows', 'Velvet Keys',
+        'Moonlight Band', 'First Dance Band', 'Acoustic Hearts', 'Swing Time', 'Piano & Rose',
+        'Soul Strings', 'The Wedding Band', 'Harmony Duo', 'Blue Hour Band', 'Sunday Jazz',
+        'Violin & Co.', 'Melody Lane', 'Groove Night', 'Serenade Strings', 'Encore Band',
+    ]),
+    # Wedding Favors: NT$ per guest.
+    'traditional-chinese': ((1_200, 280), [
+        'Moon Bakery', 'Almond House', 'Golden Crumb', 'Royal Crumb', 'Red Bean House',
+        'Lotus Pastry', 'Jade Cake House', 'Double Happiness Bakery', 'Phoenix Pastry', 'Plum Cake House',
+        'Golden Lotus Bakery', 'Old Street Pastry', 'Sesame Moon', 'Taro Cake Co.', 'Peanut Brittle House',
+        'Pineapple Cake Co.', 'Dragon & Phoenix Cakes', 'Lucky Cake House', 'Heritage Pastry', "Grandma's Bakery",
+    ]),
+    'western': ((900, 220), [
+        'Sweet Keep', 'Paper & Honey', 'Butter Bite', 'Petit Four Co.', 'Macaron Lane',
+        'Sugar & Lace', 'Patisserie Rose', 'Little Paris', 'Crème Box', 'Pastel Sweets',
+        'Le Petit Gâteau', 'Almond & Rose', 'Sweet Ribbon', 'Choux Box', 'Vanilla Bean Co.',
+        'Tart & Tulle', 'Sucre Studio', 'Ribbon Patisserie', 'Biscuit Box', 'Doux Doux',
+    ]),
+    'handmade-cookies': ((600, 150), [
+        'Tiny Treats', 'Crumbs & Co.', 'Small Joys', 'Plain Sugar', 'Honey Jar',
+        'Cookie Jar Co.', 'Iced & Sweet', 'Sugar Cookie Studio', 'Hand Iced Co.', 'Little Oven',
+        'Sprinkle Studio', 'Cookie Love', 'Baked with Joy', 'Butter & Sugar', 'Icing on Top',
+        'Home Oven', 'Cookie Notes', 'Sweet Hands', 'Royal Icing Co.', 'Crumb Story',
+    ]),
+    'imported': ((1_600, 380), [
+        'Thank You Box', 'Little Tokens', 'Bean & Bloom', 'Tea Cake Co.', 'Cocoa House',
+        'Truffle Box', 'Euro Treats', 'Belgian Box', 'Swiss Sweet', 'Praline House',
+        'Gift Box Co.', 'Velvet Cocoa', 'World Sweets', 'Grand Truffle', 'Cacao Lane',
+        'Chocolate Lane', 'Bon Bon Box', 'Cocoa & Co.', 'Choco Gift', 'Sweet Import Co.',
+    ]),
 }
-CATEGORY_WORDS = {
-    'photography': ['Studio', 'Films', 'Photo', 'Pictures'],
-    'attire': ['Bridal', 'Atelier', 'Couture', 'Gowns'],
-    'bridal-styling': ['Beauty', 'Makeup', 'Styling', 'Glam'],
-    'hosting': ['Events', 'Hosts', 'Planning', 'Weddings'],
-    'favors': ['Bakery', 'Sweets', 'Patisserie', 'Cakes'],
+
+# category -> (price unit, rounding step)
+CATEGORY_UNITS = {
+    'venues': ('table', 1_000),
+    'photography': ('event', 1_000),
+    'attire': ('event', 1_000),
+    'bridal-styling': ('event', 500),
+    'hosting': ('event', 1_000),
+    'favors': ('guest', 10),
 }
 
-# Each city starts the photo rotation at a different photo, so switching city
-# changes the pictures too. (Still a rotation of 6: no repeats within a row.)
-CITY_PHOTO_OFFSET = {'taipei': 0, 'taichung': 2, 'kaohsiung': 4}
+# Demo photos: free Unsplash photos (unsplash.com/license), 8 per subcategory,
+# chosen by hand. Unsplash serves them cropped to 4:3 at 800x600 (the w/h/fit
+# parameters in each URL). Photographer credits are in CREDITS.md.
+DEMO_PHOTOS: dict[str, list[dict[str, str]]] = json.loads(
+    (Path(__file__).parent / 'demo_photos.json').read_text(encoding='utf-8'))
+
+# Each city starts at a different photo, so switching city changes the pictures.
+CITY_PHOTO_OFFSET = {'taipei': 0, 'taichung': 3, 'kaohsiung': 6}
 
 
-def city_names(category: str, city: str, taipei_names: list[str]) -> list[str]:
-    if city == 'taipei':
-        return taipei_names
-    words = CATEGORY_WORDS[category]
-    return [f'{word} {words[i % len(words)]}' for i, word in enumerate(OTHER_CITY_WORDS[city])]
+def build_vendors() -> dict[str, list[tuple[str, str, str, int, int, str, str]]]:
+    """category -> [(name, subcategory, city, price min, price max, unit, photo URL)].
 
-
-def build_vendors() -> dict[str, list[tuple[str, str, int, int, str]]]:
-    """category -> [(name, city, price min, price max, unit)], most expensive first."""
-    vendors: dict[str, list[tuple[str, str, int, int, str]]] = {'venues': []}
-    for city, (high, low, names) in VENUE_CITIES.items():
-        for name, price in zip(names, price_ladder(high, low, len(names), 1_000)):
-            vendors['venues'].append((name, city, price, round(price * 1.3, -3), 'table'))
-
-    for category, (high, low, unit, step, taipei_names) in OTHER_CATEGORIES.items():
-        vendors[category] = []
-        for city, scale in CITY_PRICE_SCALE.items():
-            names = city_names(category, city, taipei_names)
-            prices = price_ladder(round(high * scale), round(low * scale), len(names), step)
-            vendors[category] += [
-                (name, city, price, round(price * 1.3 / step) * step, unit) for name, price in zip(names, prices)
-            ]
+    A subcategory has at most 7 vendors per city and 8 photos, so a page
+    filtered to one city and one subcategory never shows the same photo twice.
+    """
+    vendors: dict[str, list[tuple[str, str, str, int, int, str, str]]] = {}
+    for category, subs in SUBCATEGORIES.items():
+        unit, step = CATEGORY_UNITS[category]
+        rows = vendors.setdefault(category, [])
+        for sub_slug, _ in subs:
+            (high, low), names = DEMO_VENDORS[sub_slug]
+            photos = DEMO_PHOTOS[sub_slug]
+            per_city: dict[str, int] = {}
+            for index, (name, base_price) in enumerate(zip(names, price_ladder(high, low, len(names), step))):
+                city = DEMO_CITIES[index % len(DEMO_CITIES)]
+                price = round(base_price * CITY_PRICE_SCALE[city] / step) * step
+                photo_index = per_city.get(city, 0) + CITY_PHOTO_OFFSET[city]
+                per_city[city] = per_city.get(city, 0) + 1
+                photo = photos[photo_index % len(photos)]['url']
+                rows.append((name, sub_slug, city, price, round(price * 1.3 / step) * step, unit, photo))
 
     for category, rows in vendors.items():
         names = [row[0] for row in rows]
@@ -190,26 +295,6 @@ def build_vendors() -> dict[str, list[tuple[str, str, int, int, str]]]:
 
 
 VENDORS = build_vendors()
-
-# Demo photos: free Pexels photos (pexels.com/license), cropped to 4:3 at 800x600 and
-# served by Vite from public/vendors/. Numbers are the Pexels photo IDs, in file order.
-# Six per category; replace the files in public/vendors/ to use your own.
-PHOTO_SOURCES = {
-    'venues': [17315458, 13834522, 36028895, 17206153, 12876404, 17023014],
-    'photography': [5729053, 13470038, 17057198, 3990404, 3347413, 13217377],
-    'attire': [5618793, 8459398, 291759, 8459313, 19815532, 13847665],
-    'bridal-styling': [1900578, 20593111, 2997775, 7712437, 11083630, 8784918],
-    'hosting': [18662956, 27743361, 8872482, 10541661, 811572, 8872472],
-    'favors': [1346345, 2337851, 20526713, 7180263, 16014880, 8014845],
-}
-
-
-def demo_photo(category_slug: str, index: int) -> str:
-    """Photos repeat in price order. A row shows at most 6 vendors, always neighbours
-    in price order, so with 6 photos the same one never appears twice in a row.
-    `index` counts within what one row can show: per city when the category matches by city."""
-    count = len(PHOTO_SOURCES[category_slug])
-    return f'/vendors/{category_slug}-{index % count + 1}.jpg'
 
 
 def seed() -> None:
@@ -248,26 +333,14 @@ def seed() -> None:
         kept: set[Vendor] = set()  # The exact rows this run keeps, new or updated.
         for category_slug, rows in VENDORS.items():
             category = categories[category_slug]
-            per_city: dict[str, int] = {}
-            for index, (name, city_slug, price_min, price_max, unit) in enumerate(rows):
+            for name, sub_slug, city_slug, price_min, price_max, unit, photo in rows:
                 assert unit in PRICE_UNITS, unit
-                # Photos count per city, since a row only shows one city.
-                if category.match_by_city:
-                    photo_index = per_city.get(city_slug, 0) + CITY_PHOTO_OFFSET.get(city_slug, 0)
-                else:
-                    photo_index = index
-                # Demo vendors take turns between the subcategories, so every
-                # subcategory gets a mix of prices in every city.
-                subs = SUBCATEGORIES[category_slug]
-                sub_slug = subs[per_city.get(city_slug, 0) % len(subs)][0]
-                per_city[city_slug] = per_city.get(city_slug, 0) + 1
-
                 key = (category.id, name)
                 vendor = existing.get(key) or Vendor(category_id=category.id, name=name)
                 vendor.city_id = cities[city_slug].id
                 vendor.subcategory_id = subcategories[sub_slug].id
                 vendor.price_min, vendor.price_max, vendor.price_unit = price_min, price_max, unit
-                vendor.image_url = demo_photo(category_slug, photo_index)
+                vendor.image_url = photo
                 vendor.is_demo, vendor.is_active = True, True
                 session.add(vendor)
                 seeded.add(key)

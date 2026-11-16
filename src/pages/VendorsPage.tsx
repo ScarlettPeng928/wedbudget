@@ -74,8 +74,8 @@ function CategoryVendors({ category }: { category: BudgetCategory }) {
       <SiteHeader />
       <main className="pt-[clamp(64px,6vw,88px)]">
         <div className="relative flex h-[clamp(180px,24vw,340px)] items-end overflow-hidden bg-ink">
-          <img src={`/vendors/${category.slug}-1.jpg`} alt="" className="absolute inset-0 h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-linear-to-t from-black/60 to-black/10" aria-hidden="true" />
+          {/* Banner photo goes here once chosen: an <img> with absolute inset-0 object-cover,
+              plus a dark gradient so the white title stays readable. */}
           <h1 className="relative mx-auto mt-0 mb-[clamp(20px,3vw,40px)] w-full max-w-[1440px] px-[clamp(16px,3vw,48px)] font-serif text-[clamp(36px,4.4vw,72px)] leading-[1.05] font-light text-canvas">
             {category.name}
           </h1>
