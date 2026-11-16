@@ -1,0 +1,15 @@
+# Never upload to Vercel: secrets, local tools, build output, originals.
+.env
+.env.*
+**/.env
+**/.env.*
+!backend/.env.example
+backend/.venv
+**/__pycache__
+node_modules
+dist
+media-originals
+.claude
+.vscode
+.DS_Store
+*.tsbuildinfo

@@ -1,0 +1,109 @@
+@import "tailwindcss" source(none);
+@source "../index.html";
+@source "./**/*.ts";
+@source "./**/*.tsx";
+
+@theme {
+  /* Colors: "Garden" direction (trial, 2026-11-14).
+     Previous ivory/burgundy values, for comparison:
+     canvas #f5f1ea, surface #eae3d9, ink #221d1a, ink-muted #6b625b, line #d4ccc2,
+     accent #6e1f2b, accent-soft #ebdcdb, warning #b5462f, champagne #e7cfb5 */
+  --color-canvas: #f3f3ee; /* Mist: page background, a faint green-gray white */
+  --color-surface: #e6e7df; /* Pale sage: cards, full-screen menu */
+  --color-ink: #1f2620; /* Forest ink: headings, body, primary buttons, dark sections */
+  --color-ink-muted: #5f675e; /* Moss gray: secondary text, tags (5.26:1 on canvas) */
+  --color-line: #d3d6cc; /* Light sage gray: dividers, disabled */
+  --color-accent: #3e5a45; /* Deep green: current page, highlights (6.85:1 on canvas) */
+  --color-accent-soft: #dde5dc; /* Pale green: hover/selected backgrounds */
+  --color-warning: #a4452e; /* Terracotta: over budget, always with icon + text (5.44:1) */
+  --color-champagne: #dcc9a7; /* Soft gold: hero title over video, accents on dark green */
+
+  /* Fonts */
+  --font-sans: "General Sans", Arial, sans-serif; /* Body text, default */
+  --font-serif: "Gambetta", Georgia, "Times New Roman", serif; /* Headings, buttons */
+  --font-display: "Italiana", Georgia, serif; /* Logo, display */
+  --font-script: "Pinyon Script", cursive; /* Hero accent */
+}
+
+/* Hero title reveals (animated by src/animations/heroTitle.ts). --reveal is how far
+   the visible part reaches; past it the text fades out over a soft edge. At rest
+   (100%) the text is fully visible, which is also what reduced motion shows.
+   .hero-ink: left to right, a narrow feathered edge, like ink from a pen.
+   .hero-veil: bottom to top, a wide soft edge, like a veil being lifted. */
+.hero-ink,
+.hero-veil {
+  --reveal: 100%;
+}
+.hero-ink {
+  -webkit-mask-image: linear-gradient(to right, #000 var(--reveal), transparent calc(var(--reveal) + 15%));
+  mask-image: linear-gradient(to right, #000 var(--reveal), transparent calc(var(--reveal) + 15%));
+}
+.hero-veil {
+  -webkit-mask-image: linear-gradient(to top, #000 var(--reveal), transparent calc(var(--reveal) + 40%));
+  mask-image: linear-gradient(to top, #000 var(--reveal), transparent calc(var(--reveal) + 40%));
+}
+
+/* Hero title: champagne text with a soft highlight that GSAP sweeps across.
+   Padding on the element keeps the script's overhangs inside the painted background. */
+.hero-shimmer {
+  background-image: linear-gradient(
+    110deg,
+    var(--color-champagne) 42%,
+    #fff8ee 50%,
+    var(--color-champagne) 58%
+  );
+  background-size: 300% 100%;
+  background-position: 100% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Budget sliders: thin track filled in brand green up to the value (--fill), round green thumb (the brand color marks your money). */
+.budget-range {
+  display: block;
+  width: 100%;
+  height: 20px;
+  margin-inline: 0;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+.budget-range::-webkit-slider-runnable-track {
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(to right, var(--color-accent) var(--fill, 0%), var(--color-line) var(--fill, 0%));
+}
+.budget-range::-moz-range-track {
+  height: 2px;
+  border-radius: 2px;
+  background: var(--color-line);
+}
+.budget-range::-moz-range-progress {
+  height: 2px;
+  border-radius: 2px;
+  background: var(--color-accent);
+}
+.budget-range::-webkit-slider-thumb {
+  width: 16px;
+  height: 16px;
+  margin-top: -7px;
+  appearance: none;
+  border: 3px solid var(--color-canvas);
+  border-radius: 50%;
+  background: var(--color-accent);
+  box-shadow: 0 0 0 1px var(--color-accent);
+}
+.budget-range::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border: 3px solid var(--color-canvas);
+  border-radius: 50%;
+  background: var(--color-accent);
+  box-shadow: 0 0 0 1px var(--color-accent);
+}
+.budget-range:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 4px;
+  border-radius: 4px;
+}

@@ -1,0 +1,6 @@
+# What the backend needs online (Vercel installs this for api/index.py).
+# Same versions as backend/requirements.txt, minus the local tools.
+fastapi==0.162.7
+SQLAlchemy==2.1.8
+pymssql==2.4.6
+pydantic-settings==2.16.3
