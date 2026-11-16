@@ -70,7 +70,8 @@ CITIES = [
 
 # ---------- Demo vendors ----------
 #
-# 20 vendors per subcategory, 480 in all. Prices run from high to low in small,
+# 10 vendors per subcategory in every city: 17 x 24 x 10 = 4,080 in all.
+# Prices run from high to low in small,
 # even steps, so moving a slider almost always lets a vendor in or out of a row.
 # Each step is the same percentage (a ratio ladder), so cheap and expensive
 # vendors are equally dense.
@@ -82,36 +83,44 @@ def price_ladder(high: int, low: int, count: int, step: int) -> list[int]:
     return [round(high * ratio**i / step) * step for i in range(count)]
 
 
-# Demo vendors cover three cities: Taipei, Taichung and Kaohsiung. Other cities
-# show the empty state. Vendors take turns between the three in price order, so
-# every city gets the full price range. Prices outside Taipei are a little lower.
-DEMO_CITIES = ['taipei', 'taichung', 'kaohsiung']
-CITY_PRICE_SCALE = {'taipei': 1.0, 'taichung': 0.9, 'kaohsiung': 0.85}
+VENDORS_PER_CITY = 10
 
-# Per subcategory: (highest, lowest) at Taipei prices, then 20 names.
-# The price unit and rounding step come from the category (CATEGORY_UNITS).
+# Every city has demo vendors. Vendors take turns between the cities in price
+# order, so every city gets the full price range. Taipei is the price base;
+# other cities cost a little less.
+CITY_PRICE_SCALE = {
+    'taipei': 1.0, 'new-taipei': 0.95, 'keelung': 0.85, 'taoyuan': 0.9, 'hsinchu': 0.92,
+    'miaoli': 0.8, 'taichung': 0.9, 'changhua': 0.8, 'nantou': 0.78, 'yunlin': 0.75,
+    'chiayi': 0.78, 'tainan': 0.85, 'kaohsiung': 0.85, 'pingtung': 0.78, 'yilan': 0.82,
+    'hualien': 0.8, 'taitung': 0.75,
+}
+
+# Per subcategory: (highest, lowest) at Taipei prices, then hand-written names.
+# The rest of the names are made up from NAME_WORDS + SUBCATEGORY_SUFFIXES.
+# The price unit and rounding step come from the category (CATEGORY_UNITS),
+# unless the subcategory has its own (SUBCATEGORY_UNITS).
 # Names are made up. A name appears once per category.
 DEMO_VENDORS = {
-    # Venues: NT$ per table.
-    'hotel-banquet': ((68_000, 28_000), [
+    # Venues: NT$ per table, except outdoor venues (buffet, NT$ per guest).
+    'hotel-banquet': ((35_000, 25_000), [
         'Aurelia Grand Hotel', 'Velmont Hotel', 'The Orchid Crest', 'Solenne Hotel', 'Linden Park Hotel',
         'Starling Hotel', 'Ivoria Hotel', 'Halcyon Hotel', 'Royal Camellia Hotel', 'The Bellmoor',
         'Wisteria Grand', 'Eastgate Hotel', 'The Ashcombe', 'Crystal Bay Hotel', 'Maplewood Hotel',
         'Silverleaf Hotel', 'Rosemont Hotel', 'Northstar Hotel', 'Jadecourt Hotel', 'The Peony Hotel',
     ]),
-    'wedding-hall': ((30_000, 16_000), [
+    'wedding-hall': ((25_000, 16_000), [
         'Everbloom Hall', 'Promise Wedding Hall', 'Twin Hearts Hall', 'Lantern Hall', 'Union Hall',
         'Ever After Hall', 'Golden Bell Hall', 'Petal Hall', 'Joyful Union Hall', 'Moonrise Hall',
         'Blossom Hall', 'Forever Hall', 'Grand Vow Hall', 'Harmony Hall', 'Celeste Hall',
         'Rosewood Hall', 'First Light Hall', 'Willow Hall', 'Two Rings Hall', 'Happy Day Hall',
     ]),
-    'restaurant': ((30_000, 10_000), [
+    'restaurant': ((16_000, 8_000), [
         'Jade Table', 'The Long Table', 'Copper Pot', 'Lotus Kitchen', 'Bamboo Court',
         'Red Lantern House', 'Little Feast', 'Harvest Table', 'Old Tea House', 'Ginger & Garlic',
         'Plum Blossom Kitchen', 'River Bistro', 'Hearth & Home', 'Five Flavors', 'Seaside Kitchen',
         'Rice & Salt', 'The Courtyard Kitchen', 'Golden Wok', 'Morning Market Kitchen', 'Sesame House',
     ]),
-    'outdoor-garden': ((55_000, 18_000), [
+    'outdoor-garden': ((2_500, 1_500), [
         'Green Meadow Garden', 'Hillside Estate', 'Willow Creek Garden', 'Sunflower Farm', 'Camphor Grove',
         'Lakeside Lawn', 'Wildflower Estate', 'Rose Garden Manor', 'Tea Hill Terrace', 'Pine Ridge Garden',
         'Orchard House', 'Secret Garden Venue', 'Riverbank Garden', 'Mountain View Lawn', 'Bamboo Grove Garden',
@@ -253,37 +262,93 @@ CATEGORY_UNITS = {
     'hosting': ('event', 1_000),
     'favors': ('guest', 10),
 }
+SUBCATEGORY_UNITS = {
+    'outdoor-garden': ('guest', 50),
+}
 
-# Demo photos: free Unsplash photos (unsplash.com/license), 8 per subcategory,
+# Generated names: one word + a word for the kind of vendor ("Amber Hall").
+# Suffixes don't repeat within a category, so the names can't either.
+NAME_WORDS = [
+    'Amber', 'Birch', 'Clover', 'Dune', 'Ember', 'Fern', 'Garnet', 'Hazel', 'Iris', 'Juniper',
+    'Kite', 'Linden', 'Marigold', 'Nectar', 'Oak', 'Poppy', 'Quill', 'Reef', 'Saffron', 'Tide',
+    'Umber', 'Vale', 'Wren', 'Yarrow', 'Zephyr', 'Azure', 'Bay', 'Coral', 'Drift', 'Harbor',
+    'Isle', 'Lagoon', 'Aster', 'Briar', 'Cedar', 'Dahlia', 'Elm', 'Fable', 'Gale', 'Heather',
+    'Indigo', 'Jasmine', 'Laurel', 'Meadow', 'Nova', 'Olive', 'Pearl', 'Quartz', 'Rowan', 'Sage',
+    'Thistle', 'Velvet', 'Willow', 'Acacia', 'Bloom', 'Cove', 'Daisy', 'Echo', 'Fir', 'Glade',
+    'Honey', 'Ivory', 'June', 'Lark', 'Maple', 'Opal', 'Pine', 'River', 'Sparrow', 'Tulip',
+]
+SUBCATEGORY_SUFFIXES = {
+    'hotel-banquet': ['Hotel', 'Grand Hotel', 'Hotel Ballroom'],
+    'wedding-hall': ['Hall', 'Wedding Hall', 'Banquet Hall'],
+    'restaurant': ['Kitchen', 'Bistro', 'Dining'],
+    'outdoor-garden': ['Garden', 'Estate', 'Lawn'],
+    'photographer': ['Photo', 'Photography', 'Studio'],
+    'videographer': ['Films', 'Cinema', 'Motion'],
+    'pre-wedding-studio': ['Bridal Studio', 'Portraits', 'Wedding Photo'],
+    'photo-booth': ['Booth', 'Photo Booth', 'Snaps'],
+    'gown-rental': ['Bridal', 'Gowns', 'Bridal Rental'],
+    'custom-gowns': ['Couture', 'Atelier', 'Bridal Couture'],
+    'suits': ['Tailors', 'Suits', 'Menswear'],
+    'accessories': ['Jewels', 'Veils', 'Accessories'],
+    'bridal-stylist': ['Styling', 'Bridal Styling', 'Bride Studio'],
+    'makeup-artist': ['Makeup', 'Beauty', 'Glam'],
+    'hair-studio': ['Hair', 'Salon', 'Hair Studio'],
+    'nails': ['Nails', 'Nail Studio', 'Nail Bar'],
+    'wedding-planner': ['Weddings', 'Events', 'Planning'],
+    'emcee': ['Hosts', 'Emcee', 'MC'],
+    'day-of-coordinator': ['Coordination', 'Day-of', 'Wedding Day'],
+    'live-music': ['Band', 'Strings', 'Ensemble'],
+    'traditional-chinese': ['Bakery', 'Pastry', 'Cake House'],
+    'western': ['Patisserie', 'Sweets', 'Macarons'],
+    'handmade-cookies': ['Cookies', 'Cookie Co.', 'Biscuits'],
+    'imported': ['Chocolates', 'Confections', 'Gifts'],
+}
+
+
+def vendor_names(sub_slug: str, count: int, taken: set[str]) -> list[str]:
+    """The hand-written names first, then generated ones, skipping names already used."""
+    _, written = DEMO_VENDORS[sub_slug]
+    candidates = written + [f'{word} {suffix}' for suffix in SUBCATEGORY_SUFFIXES[sub_slug] for word in NAME_WORDS]
+    names = []
+    for name in candidates:
+        if name not in taken:
+            names.append(name)
+            taken.add(name)
+            if len(names) == count:
+                return names
+    raise SystemExit(f'{sub_slug}: not enough names for {count} vendors. Add words to NAME_WORDS.')
+
+# Demo photos: free Unsplash photos (unsplash.com/license), 10 per subcategory,
 # chosen by hand. Unsplash serves them cropped to 4:3 at 800x600 (the w/h/fit
 # parameters in each URL). Photographer credits are in CREDITS.md.
 DEMO_PHOTOS: dict[str, list[dict[str, str]]] = json.loads(
     (Path(__file__).parent / 'demo_photos.json').read_text(encoding='utf-8'))
 
-# Each city starts at a different photo, so switching city changes the pictures.
-CITY_PHOTO_OFFSET = {'taipei': 0, 'taichung': 3, 'kaohsiung': 6}
 
 
 def build_vendors() -> dict[str, list[tuple[str, str, str, int, int, str, str]]]:
     """category -> [(name, subcategory, city, price min, price max, unit, photo URL)].
 
-    A subcategory has at most 7 vendors per city and 8 photos, so a page
-    filtered to one city and one subcategory never shows the same photo twice.
+    A subcategory has 10 vendors per city and 10 photos, so a page filtered to
+    one city and one subcategory never shows the same photo twice.
     """
+    cities = [slug for slug, _ in CITIES]
+    count = VENDORS_PER_CITY * len(cities)
     vendors: dict[str, list[tuple[str, str, str, int, int, str, str]]] = {}
     for category, subs in SUBCATEGORIES.items():
-        unit, step = CATEGORY_UNITS[category]
+        taken: set[str] = set()
         rows = vendors.setdefault(category, [])
         for sub_slug, _ in subs:
-            (high, low), names = DEMO_VENDORS[sub_slug]
+            unit, step = SUBCATEGORY_UNITS.get(sub_slug, CATEGORY_UNITS[category])
+            (high, low), _ = DEMO_VENDORS[sub_slug]
             photos = DEMO_PHOTOS[sub_slug]
-            per_city: dict[str, int] = {}
-            for index, (name, base_price) in enumerate(zip(names, price_ladder(high, low, len(names), step))):
-                city = DEMO_CITIES[index % len(DEMO_CITIES)]
+            names = vendor_names(sub_slug, count, taken)
+            for index, (name, base_price) in enumerate(zip(names, price_ladder(high, low, count, step))):
+                city_index, turn = index % len(cities), index // len(cities)
+                city = cities[city_index]
                 price = round(base_price * CITY_PRICE_SCALE[city] / step) * step
-                photo_index = per_city.get(city, 0) + CITY_PHOTO_OFFSET[city]
-                per_city[city] = per_city.get(city, 0) + 1
-                photo = photos[photo_index % len(photos)]['url']
+                # Each city starts at a different photo, so switching city changes the pictures.
+                photo = photos[(turn + city_index * 3) % len(photos)]['url']
                 rows.append((name, sub_slug, city, price, round(price * 1.3 / step) * step, unit, photo))
 
     for category, rows in vendors.items():
