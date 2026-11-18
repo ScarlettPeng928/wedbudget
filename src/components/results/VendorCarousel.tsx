@@ -13,7 +13,7 @@ function ArrowButton({ label, direction, disabled, onClick }: { label: string; d
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className="flex size-10 cursor-pointer items-center justify-center rounded-lg border border-ink text-ink transition-colors hover:bg-ink hover:text-canvas disabled:cursor-default disabled:border-line disabled:bg-transparent disabled:text-line"
+      className="flex size-10 cursor-pointer items-center justify-center rounded-lg border border-plum text-plum transition-colors hover:bg-plum hover:text-cream disabled:cursor-default disabled:border-sand disabled:bg-transparent disabled:text-sand"
     >
       <svg viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
         <path d={direction === -1 ? 'M10 3L5 8l5 5' : 'M6 3l5 5-5 5'} />
@@ -79,7 +79,7 @@ export default function VendorCarousel({
           <h3 id={headingId} className="m-0 font-serif text-[clamp(20px,1.7vw,26px)] font-light">
             {title}
           </h3>
-          <p className="m-0 text-[15px] text-ink-muted tabular-nums">{formatNT(amount)}</p>
+          <p className="m-0 text-[15px] text-cocoa tabular-nums">{formatNT(amount)}</p>
         </div>
         {/* Phones swipe the row instead. No arrows when there is nothing to page through. */}
         {!empty && (
@@ -96,7 +96,7 @@ export default function VendorCarousel({
       {empty ? (
         <p
           aria-busy={updating}
-          className={`m-0 rounded-lg border border-dashed border-line px-5 py-8 text-center text-[15px] text-ink-muted transition-opacity duration-200 ${updating ? 'opacity-40' : ''}`}
+          className={`m-0 rounded-lg border border-dashed border-sand px-5 py-8 text-center text-[15px] text-cocoa transition-opacity duration-200 ${updating ? 'opacity-40' : ''}`}
         >
           No vendors in this budget yet.
         </p>
@@ -115,9 +115,9 @@ export default function VendorCarousel({
               ))
             : vendors.map((vendor) => (
                 <li key={vendor.id} className={CARD}>
-                  <VendorCard vendor={vendor}>
+                  <VendorCard vendor={vendor} category={slug}>
                     {/* No city here: every vendor on the page is in the plan's city, named in the headline. */}
-                    <p className="mt-1 mb-0 text-[14px] text-ink-muted tabular-nums">
+                    <p className="mt-1 mb-0 text-[14px] text-cocoa tabular-nums">
                       <span className="sr-only">Estimated total </span>
                       {formatNT(vendor.estimatedCost)}
                     </p>

@@ -14,9 +14,13 @@ export type Subcategory = {
 export type BudgetCategory = PlanCategory & {
   tagline: string;
   subcategories: Subcategory[];
+  // Photo for the category's card on the home page. Until one is set, the card
+  // shows a plain rosewood block. To add one: put the file in src/assets/categories/,
+  // import it at the top of this file, and set `cover: thatImport` below.
+  cover?: string;
 };
 
-type HomeCopy = Pick<BudgetCategory, 'tagline' | 'subcategories'>;
+type HomeCopy = Pick<BudgetCategory, 'tagline' | 'subcategories' | 'cover'>;
 
 const homeCopy: Record<string, HomeCopy> = {
   venues: {

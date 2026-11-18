@@ -44,7 +44,7 @@ function EditableValue({
       onClick={() => onEdit(field)}
       aria-expanded={open}
       aria-controls="plan-editor"
-      className="cursor-pointer border-0 bg-transparent p-0 text-inherit whitespace-nowrap underline decoration-accent decoration-2 underline-offset-[0.14em] transition-colors [font:inherit] hover:decoration-ink focus-visible:decoration-ink"
+      className="cursor-pointer border-0 bg-transparent p-0 text-inherit whitespace-nowrap underline decoration-rosewood decoration-2 underline-offset-[0.14em] transition-colors [font:inherit] hover:decoration-plum focus-visible:decoration-plum"
     >
       {children}
     </button>
@@ -211,7 +211,7 @@ export default function ResultsPage() {
           {editing && (
             <div
               id="plan-editor"
-              className="mt-[clamp(24px,3vw,40px)] max-w-[960px] border-t border-line pt-[clamp(24px,3vw,40px)]"
+              className="mt-[clamp(24px,3vw,40px)] max-w-[960px] border-t border-sand pt-[clamp(24px,3vw,40px)]"
               onKeyDown={(e) => {
                 if (e.key === 'Escape') closeEditor();
               }}
@@ -241,6 +241,7 @@ export default function ResultsPage() {
               allocations={allocations}
               suggested={plan.suggested}
               totalBudget={totalBudget}
+              guestCount={guestCount}
               onChange={setAllocation}
               onActivate={showVendorsFor}
             />
@@ -251,12 +252,12 @@ export default function ResultsPage() {
               Vendors within your estimated budget
             </h2>
             {matches.status === 'error' && (
-              <div role="alert" className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[14px] text-warning">
+              <div role="alert" className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[14px] text-terracotta">
                 <p className="m-0">Vendors couldn't be loaded. Check your connection and try again.</p>
                 <button
                   type="button"
                   onClick={matches.retry}
-                  className="cursor-pointer border-0 bg-transparent p-0 text-[14px] text-ink underline decoration-accent decoration-2 underline-offset-[0.2em] hover:decoration-ink"
+                  className="cursor-pointer border-0 bg-transparent p-0 text-[14px] text-plum underline decoration-rosewood decoration-2 underline-offset-[0.2em] hover:decoration-plum"
                 >
                   Try again
                 </button>

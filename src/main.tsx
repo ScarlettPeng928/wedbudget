@@ -3,7 +3,6 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router';
 import App from './App';
 import '@fontsource/italiana/400.css';
-import '@fontsource/pinyon-script/400.css';
 import './fonts.css';
 import './input.css';
 

@@ -4,59 +4,54 @@
 @source "./**/*.tsx";
 
 @theme {
-  /* Colors: "Garden" direction (trial, 2026-11-14).
-     Previous ivory/burgundy values, for comparison:
-     canvas #f5f1ea, surface #eae3d9, ink #221d1a, ink-muted #6b625b, line #d4ccc2,
-     accent #6e1f2b, accent-soft #ebdcdb, warning #b5462f, champagne #e7cfb5 */
-  --color-canvas: #f3f3ee; /* Mist: page background, a faint green-gray white */
-  --color-surface: #e6e7df; /* Pale sage: cards, full-screen menu */
-  --color-ink: #1f2620; /* Forest ink: headings, body, primary buttons, dark sections */
-  --color-ink-muted: #5f675e; /* Moss gray: secondary text, tags (5.26:1 on canvas) */
-  --color-line: #d3d6cc; /* Light sage gray: dividers, disabled */
-  --color-accent: #3e5a45; /* Deep green: current page, highlights (6.85:1 on canvas) */
-  --color-accent-soft: #dde5dc; /* Pale green: hover/selected backgrounds */
-  --color-warning: #a4452e; /* Terracotta: over budget, always with icon + text (5.44:1) */
-  --color-champagne: #dcc9a7; /* Soft gold: hero title over video, accents on dark green */
+  /* Colors, named after the color itself (palette set 2026-11-17).
+     Usage notes give the role and contrast on cream (text needs 4.5:1).
+     Your palette: */
+  --color-plum: #2c111a; /* Text, headings, primary buttons, dark sections (15.4:1) */
+  --color-sand: #c9baab; /* Dividers, faint text, text over the hero video and on plum */
+  --color-rosewood: #886260; /* Highlights: current page, slider, links (4.7:1) */
+  --color-sage: #a39c8d; /* Decoration only, too light for text */
+  --color-mauve: #a49494; /* Decoration only, too light for text */
+  /* Added so the palette has light backgrounds and readable secondary text: */
+  --color-cream: #f5f0eb; /* Page background, a very light sand */
+  --color-linen: #ebe3da; /* Cards, image placeholders, full-screen menu */
+  --color-oat: #dfd5cb; /* Sand and cream half and half (sand at 50%, but solid): home category cards and how-it-works */
+  --color-cocoa: #665656; /* Secondary text, tags (6.1:1) */
+  --color-terracotta: #a4452e; /* Over budget, always with icon + text (5.4:1) */
 
   /* Fonts */
   --font-sans: "General Sans", Arial, sans-serif; /* Body text, default */
   --font-serif: "Gambetta", Georgia, "Times New Roman", serif; /* Headings, buttons */
   --font-display: "Italiana", Georgia, serif; /* Logo, display */
-  --font-script: "Pinyon Script", cursive; /* Hero accent */
+
+  /* Type scale: see docs/typography.md for when to use each step.
+     Each size scales with the screen between a phone minimum and a desktop maximum.
+     Tailwind turns each into a class (text-display, text-title, ...) that sets the
+     font size and its line height together. */
+  --text-display: clamp(32px, 3.4vw, 56px); /* Hero headline */
+  --text-display--line-height: 1.12;
+  --text-title: clamp(28px, 2.8vw, 44px); /* Section titles */
+  --text-title--line-height: 1.15;
+  --text-statement: clamp(22px, 2.2vw, 34px); /* Story lines, hero CTA, step titles */
+  --text-statement--line-height: 1.3;
+  --text-lead: clamp(16px, 1.3vw, 20px); /* Subtitles, short paragraphs that introduce a section */
+  --text-lead--line-height: 1.6;
+  --text-body: clamp(15px, 1.05vw, 17px); /* Running text */
+  --text-body--line-height: 1.6;
+  --text-small: clamp(13px, 0.95vw, 15px); /* Supporting facts, footer links */
+  --text-small--line-height: 1.5;
+  --text-label: clamp(11px, 0.85vw, 13px); /* Uppercase labels: buttons, nav, card names */
+  --text-label--line-height: 1.4;
 }
 
-/* Hero title reveals (animated by src/animations/heroTitle.ts). --reveal is how far
+/* Hero title reveal (animated by src/animations/heroTitle.ts). --reveal is how far
    the visible part reaches; past it the text fades out over a soft edge. At rest
    (100%) the text is fully visible, which is also what reduced motion shows.
-   .hero-ink: left to right, a narrow feathered edge, like ink from a pen.
    .hero-veil: bottom to top, a wide soft edge, like a veil being lifted. */
-.hero-ink,
 .hero-veil {
   --reveal: 100%;
-}
-.hero-ink {
-  -webkit-mask-image: linear-gradient(to right, #000 var(--reveal), transparent calc(var(--reveal) + 15%));
-  mask-image: linear-gradient(to right, #000 var(--reveal), transparent calc(var(--reveal) + 15%));
-}
-.hero-veil {
   -webkit-mask-image: linear-gradient(to top, #000 var(--reveal), transparent calc(var(--reveal) + 40%));
   mask-image: linear-gradient(to top, #000 var(--reveal), transparent calc(var(--reveal) + 40%));
-}
-
-/* Hero title: champagne text with a soft highlight that GSAP sweeps across.
-   Padding on the element keeps the script's overhangs inside the painted background. */
-.hero-shimmer {
-  background-image: linear-gradient(
-    110deg,
-    var(--color-champagne) 42%,
-    #fff8ee 50%,
-    var(--color-champagne) 58%
-  );
-  background-size: 300% 100%;
-  background-position: 100% 0;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
 }
 
 /* Budget sliders: thin track filled in brand green up to the value (--fill), round green thumb (the brand color marks your money). */
@@ -72,38 +67,38 @@
 .budget-range::-webkit-slider-runnable-track {
   height: 2px;
   border-radius: 2px;
-  background: linear-gradient(to right, var(--color-accent) var(--fill, 0%), var(--color-line) var(--fill, 0%));
+  background: linear-gradient(to right, var(--color-rosewood) var(--fill, 0%), var(--color-sand) var(--fill, 0%));
 }
 .budget-range::-moz-range-track {
   height: 2px;
   border-radius: 2px;
-  background: var(--color-line);
+  background: var(--color-sand);
 }
 .budget-range::-moz-range-progress {
   height: 2px;
   border-radius: 2px;
-  background: var(--color-accent);
+  background: var(--color-rosewood);
 }
 .budget-range::-webkit-slider-thumb {
   width: 16px;
   height: 16px;
   margin-top: -7px;
   appearance: none;
-  border: 3px solid var(--color-canvas);
+  border: 3px solid var(--color-cream);
   border-radius: 50%;
-  background: var(--color-accent);
-  box-shadow: 0 0 0 1px var(--color-accent);
+  background: var(--color-rosewood);
+  box-shadow: 0 0 0 1px var(--color-rosewood);
 }
 .budget-range::-moz-range-thumb {
   width: 10px;
   height: 10px;
-  border: 3px solid var(--color-canvas);
+  border: 3px solid var(--color-cream);
   border-radius: 50%;
-  background: var(--color-accent);
-  box-shadow: 0 0 0 1px var(--color-accent);
+  background: var(--color-rosewood);
+  box-shadow: 0 0 0 1px var(--color-rosewood);
 }
 .budget-range:focus-visible {
-  outline: 2px solid var(--color-ink);
+  outline: 2px solid var(--color-plum);
   outline-offset: 4px;
   border-radius: 4px;
 }

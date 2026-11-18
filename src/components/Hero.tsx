@@ -1,55 +1,21 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
 import { Link } from 'react-router';
 import { heroTitleIn } from '../animations/heroTitle';
-import heroVideo from '../assets/home/hero-1080.mp4';
+import { SCROLL_SCRUB } from '../animations/ease';
+import { useBackgroundVideo } from '../hooks/useBackgroundVideo';
+import heroVideo from '../assets/home/grass_walk_1x_zoom_centered.mp4';
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 
-const SCRIPT_LINE = 'Here comes';
-const MAIN_LINE = 'the rest of your life';
-
 export default function Hero() {
   const section = useRef<HTMLElement>(null);
+  const frame = useRef<HTMLDivElement>(null);
   const content = useRef<HTMLDivElement>(null);
   const video = useRef<HTMLVideoElement>(null);
-  // Paused by the visitor with the button. Only they can undo it.
-  const [userPaused, setUserPaused] = useState(false);
-  const userPausedRef = useRef(false);
-
-  // Save battery: pause while the hero is scrolled out of view, resume when it's
-  // back. Only a video this observer paused is resumed, so it never starts the
-  // video early during the intro (which holds it on its first frame) or overrides
-  // the visitor's own pause.
-  useEffect(() => {
-    const el = video.current;
-    const hero = section.current;
-    if (!el || !hero) return;
-    let pausedForScroll = false;
-    const observer = new IntersectionObserver(([entry]) => {
-      if (!entry.isIntersecting && !el.paused) {
-        el.pause();
-        pausedForScroll = true;
-      } else if (entry.isIntersecting && pausedForScroll) {
-        pausedForScroll = false;
-        if (!userPausedRef.current) void el.play().catch(() => {});
-      }
-    });
-    observer.observe(hero);
-    return () => observer.disconnect();
-  }, []);
-
-  const togglePlayback = () => {
-    const el = video.current;
-    if (!el) return;
-    const pause = !userPaused;
-    userPausedRef.current = pause;
-    setUserPaused(pause);
-    if (pause) el.pause();
-    else void el.play().catch(() => {});
-  };
+  const { userPaused, toggle: togglePlayback } = useBackgroundVideo(section, video);
 
   useGSAP(
     () => {
@@ -58,100 +24,135 @@ export default function Hero() {
         // The intro reveals the title itself; otherwise play it here.
         if (!document.querySelector('.intro-door')) heroTitleIn().delay(0.3);
 
-        // Parallax: the video drifts at half the scroll speed, so it feels farther
-        // away than the page, while the title fades out as it scrolls off.
-        const scrollOut = { trigger: section.current, start: 'top top', end: 'bottom top', scrub: true };
-        gsap.to('.hero-video', {
-          y: () => (section.current?.offsetHeight ?? 0) * 0.5,
+        // The section is taller than the screen and the frame inside it is sticky,
+        // so the video holds still for the extra height. Over that stretch the title
+        // and button sink from the middle of the screen down to the bottom edge;
+        // once there, the frame lets go and scrolls away with them.
+        gsap.to(content.current, {
+          y: () => {
+            const frameHeight = frame.current?.clientHeight ?? 0;
+            const contentHeight = content.current?.offsetHeight ?? 0;
+            const bottomGap = Math.min(Math.max(96, frameHeight * 0.14), 140);
+            return (frameHeight - contentHeight) / 2 - bottomGap;
+          },
           ease: 'none',
-          scrollTrigger: { ...scrollOut, invalidateOnRefresh: true },
+          scrollTrigger: {
+            trigger: section.current,
+            start: 'top top',
+            end: 'bottom bottom',
+            scrub: SCROLL_SCRUB,
+            invalidateOnRefresh: true,
+          },
         });
-        // Darken the video as it leaves: 30% shade at rest, about 60% by the end.
-        gsap.to('.hero-dim', { opacity: 0.45, ease: 'none', scrollTrigger: scrollOut });
-        gsap.to(content.current, { autoAlpha: 0, ease: 'power1.in', scrollTrigger: { ...scrollOut, end: 'bottom 30%' } });
 
-        // A soft light glides across the title twice, like light on gold foil, then rests.
-        gsap
-          .timeline({ repeat: 1, repeatDelay: 5, delay: 4.5 })
-          .fromTo(
-            '.hero-shimmer',
-            { backgroundPosition: '100% 0' },
-            { backgroundPosition: '0% 0', duration: 1.8, stagger: 0.12, ease: 'power2.inOut' },
-          );
+        // Meanwhile the video eases back from a slight zoom, so the screen visibly
+        // answers the first scrolls. It scales a wrapper, not the video itself,
+        // because the intro animates the video's own scale when the doors open.
+        gsap.fromTo(
+          '.hero-zoom',
+          { scale: 1.08 },
+          {
+            scale: 1,
+            ease: 'none',
+            scrollTrigger: { trigger: section.current, start: 'top top', end: 'bottom bottom', scrub: SCROLL_SCRUB },
+          },
+        );
       });
     },
     { scope: section },
   );
 
   return (
-    <section
-      ref={section}
-      className="hero-media relative isolate flex min-h-[max(560px,100svh)] items-end justify-center overflow-hidden bg-ink"
-      aria-labelledby="hero-title"
-    >
-      <video
-        ref={video}
-        className="hero-video absolute inset-0 -z-20 h-full w-full object-cover will-change-transform"
-        src={heroVideo}
-        autoPlay
-        muted
-        loop
-        playsInline
-        preload="auto"
-        aria-hidden="true"
-      />
-      {/* Shade where the title sits, fading out towards the top: the title stays readable
-          over the white-dress shots, while faces and trees above keep their light. */}
-      <div
-        className="absolute inset-0 -z-10 bg-linear-to-t from-black/55 via-black/20 via-45% to-black/10"
-        aria-hidden="true"
-      />
-      {/* Extra shade that deepens as the hero scrolls away. */}
-      <div className="hero-dim absolute inset-0 -z-10 bg-black opacity-0" aria-hidden="true" />
+    // Reduced motion: no sinking title, so no extra scroll height either.
+    <section ref={section} data-header-tone="dark" className="hero-media relative h-[200svh] bg-plum motion-reduce:h-auto" aria-labelledby="hero-title">
+      <div ref={frame} className="sticky top-0 isolate h-svh min-h-[560px] overflow-hidden">
+        <div className="hero-zoom absolute inset-0 -z-20 will-change-transform">
+          <video
+            ref={video}
+            // Color grade: a little less saturation and a touch of warmth, so the green
+            // field leans toward the page's warm palette without losing its life.
+            className="hero-video h-full w-full object-cover [filter:saturate(0.85)_sepia(0.15)]"
+          src={heroVideo}
+          autoPlay
+          muted
+          loop
+          playsInline
+            preload="auto"
+            aria-hidden="true"
+          />
+        </div>
+        {/* Shade: clear at the top, deepening to plum at the bottom, at 50% strength.
+            Plum rather than black, so the video's shadows lean toward the page's color. */}
+        <div className="absolute inset-0 -z-10 bg-linear-to-b from-transparent to-plum opacity-50" aria-hidden="true" />
+        {/* A light shade behind the header, so its small text reads over bright frames. */}
+        <div
+          className="absolute inset-x-0 top-0 -z-10 h-[clamp(120px,18vh,200px)] bg-linear-to-b from-black/30 to-transparent"
+          aria-hidden="true"
+        />
+        {/* The bottom edge always fades into solid plum, the story's background, so the
+            two sections never meet at a hard line. It sits below the sunk title. */}
+        <div
+          className="absolute inset-x-0 bottom-0 -z-10 h-[clamp(72px,12vh,120px)] bg-linear-to-b from-transparent to-plum"
+          aria-hidden="true"
+        />
 
-      <div ref={content} className="px-4 pb-[clamp(56px,12vh,140px)] text-center text-canvas">
-        {/* Fades out as the hero scrolls away. */}
-        <div className="flex flex-col items-center">
-          <h1 id="hero-title" aria-label={`${SCRIPT_LINE} ${MAIN_LINE}.`} className="m-0 font-light text-champagne">
-            {/* A small handwritten line tucked over a large upright one, like a
-                wedding invitation: the script carries the feeling, the roman the statement.
-                The script overlaps the main line slightly so the two read as one lockup. */}
-            {/* The script size sits on this outer span so the negative margin (in em)
-                scales with the script, not with the page's base font size. */}
-            <span aria-hidden="true" className="relative z-10 mb-[-0.6em] block font-script text-[clamp(28px,3.8vw,56px)] leading-none">
-              <span className="hero-script hero-ink hero-shimmer inline-block px-[0.4em] py-[0.15em]">
-                {SCRIPT_LINE}
-              </span>
-            </span>
-            <span aria-hidden="true" className="block">
-              <span className="hero-main hero-veil hero-shimmer inline-block px-[0.1em] py-[0.12em] font-serif text-[clamp(32px,9.5vw,112px)] leading-[1.1] whitespace-nowrap">
-                {MAIN_LINE}
-              </span>
-            </span>
-          </h1>
+        {/* Same side gutter and 1440px cap as the header, so the title lines up with
+            the menu button and the button with "Plan my wedding" on any screen. */}
+        <div className="flex h-full items-center px-[clamp(16px,3vw,48px)]">
+          <div
+            ref={content}
+            className="mx-auto flex w-full max-w-[1440px] flex-col gap-[clamp(32px,6vh,56px)] text-sand md:flex-row md:items-end md:justify-between"
+          >
+            <div>
+              <h1 id="hero-title" className="m-0 font-serif text-display font-light">
+                <span className="hero-line hero-veil block">
+                  <em>Your</em> <strong className="font-semibold">budget,</strong>
+                </span>
+                <span className="hero-line hero-veil block">
+                  <em>beautifully planned.</em>
+                </span>
+              </h1>
+              <p className="hero-sub mt-[clamp(16px,2.4vh,24px)] mb-0 font-sans text-lead font-light tracking-[0.05em] text-pretty">
+                Start with your budget. Find the vendors that fit it.
+              </p>
+            </div>
 
-          <div className="mt-[clamp(32px,5vh,56px)]">
             <Link
               to="/plan"
-              className="hero-cta inline-block rounded-lg border border-canvas/70 px-[clamp(16px,1.6vw,24px)] py-[clamp(8px,0.8vw,11px)] font-serif text-[clamp(12px,0.9vw,14px)] tracking-[0.06em] text-canvas uppercase no-underline transition-[background-color,color,border-color,letter-spacing] duration-700 ease-out hover:border-canvas hover:bg-canvas hover:tracking-[0.14em] hover:text-ink focus-visible:bg-canvas focus-visible:tracking-[0.14em] focus-visible:text-ink motion-reduce:transition-colors"
+              className="hero-cta group inline-flex items-center gap-[0.4em] self-start border-b border-sand pb-[0.15em] font-serif text-title leading-none font-light text-sand italic no-underline md:self-auto"
             >
-              Plan my wedding
+              Begin my plan
+              {/* Thin line arrow pointing down-right. Sized in em so it scales with the text;
+                  stroke follows the text color (currentColor). */}
+              <svg
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+                className="size-[0.85em] shrink-0 transition-transform duration-500 ease-out group-hover:translate-x-1 group-hover:translate-y-1 motion-reduce:transition-none"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.25"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M5 5 19 19M19 8v11H8" />
+              </svg>
             </Link>
           </div>
         </div>
-      </div>
 
-      {/* Moving video that loops forever must be pausable (WCAG 2.2.2). */}
-      <button
-        type="button"
-        onClick={togglePlayback}
-        aria-label={userPaused ? 'Play background video' : 'Pause background video'}
-        className="absolute right-[clamp(16px,3vw,48px)] bottom-[clamp(16px,3vh,32px)] flex size-10 cursor-pointer items-center justify-center rounded-lg border border-canvas/50 bg-transparent text-canvas transition-colors hover:border-canvas hover:bg-canvas/10"
-      >
-        <svg viewBox="0 0 16 16" className="size-3.5" fill="currentColor" aria-hidden="true">
-          {userPaused ? <path d="M4.5 2.5v11l9-5.5z" /> : <path d="M4 2.5h2.5v11H4zM9.5 2.5H12v11H9.5z" />}
-        </svg>
-      </button>
+        {/* Moving video that loops forever must be pausable (WCAG 2.2.2).
+            Its right edge follows the content's: the gutter, or the 1440px cap on wide screens. */}
+        <button
+          type="button"
+          onClick={togglePlayback}
+          aria-label={userPaused ? 'Play background video' : 'Pause background video'}
+          className="absolute right-[max(clamp(16px,3vw,48px),calc((100%-1440px)/2))] bottom-[clamp(16px,3vh,32px)] flex size-10 cursor-pointer items-center justify-center rounded-lg border border-sand/50 bg-transparent text-sand transition-colors hover:border-sand hover:bg-sand/10"
+        >
+          <svg viewBox="0 0 16 16" className="size-3.5" fill="currentColor" aria-hidden="true">
+            {userPaused ? <path d="M4.5 2.5v11l9-5.5z" /> : <path d="M4 2.5h2.5v11H4zM9.5 2.5H12v11H9.5z" />}
+          </svg>
+        </button>
+      </div>
     </section>
   );
 }

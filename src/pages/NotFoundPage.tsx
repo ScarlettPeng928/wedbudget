@@ -19,7 +19,7 @@ export default function NotFoundPage() {
         </h1>
         <Link
           to="/"
-          className="inline-block rounded-lg border border-ink px-[clamp(16px,1.6vw,24px)] py-[clamp(10px,1vw,14px)] font-serif text-[clamp(13px,1.1vw,16px)] tracking-[0.06em] text-ink uppercase no-underline transition-colors hover:bg-ink hover:text-canvas"
+          className="inline-block rounded-lg border border-plum px-[clamp(16px,1.6vw,24px)] py-[clamp(10px,1vw,14px)] font-serif text-[clamp(13px,1.1vw,16px)] tracking-[0.06em] text-plum uppercase no-underline transition-colors hover:bg-plum hover:text-cream"
         >
           Back to home
         </Link>

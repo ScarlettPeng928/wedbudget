@@ -4,7 +4,9 @@ import Intro from '../components/Intro';
 import SiteHeader from '../components/SiteHeader';
 import Hero from '../components/Hero';
 import Story from '../components/Story';
-import BudgetCategories from '../components/BudgetCategories';
+import CategoryCards from '../components/CategoryCards';
+import HowItWorks from '../components/HowItWorks';
+import ClosingGallery from '../components/ClosingGallery';
 import SiteFooter from '../components/SiteFooter';
 
 export default function HomePage() {
@@ -28,7 +30,9 @@ export default function HomePage() {
       <main>
         <Hero />
         <Story />
-        <BudgetCategories />
+        <CategoryCards />
+        <HowItWorks />
+        <ClosingGallery />
       </main>
       <SiteFooter />
     </>

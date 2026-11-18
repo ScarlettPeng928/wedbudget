@@ -1,14 +1,15 @@
 import type { Subcategory } from '../data/budgetCategories';
 
 // Shown until real photos are added to the data file.
+// Tones from the theme palette (input.css), so they follow any color change there.
 const placeholderTones = [
-  'linear-gradient(160deg, #7c8a7a, #2b3a2f)',
-  'linear-gradient(200deg, #8f9a86, #34402f)',
-  'linear-gradient(180deg, #6f7d72, #222c25)',
-  'linear-gradient(140deg, #9aa48f, #3b4a3c)',
+  'linear-gradient(160deg, var(--color-mauve), var(--color-plum))',
+  'linear-gradient(200deg, var(--color-sage), var(--color-plum))',
+  'linear-gradient(180deg, var(--color-rosewood), var(--color-plum))',
+  'linear-gradient(140deg, var(--color-sand), var(--color-rosewood))',
 ];
 
-// A subcategory's photo, or a green tone in its place. `index` picks the tone.
+// A subcategory's photo, or a palette tone in its place. `index` picks the tone.
 export default function SubcategoryPhoto({
   sub,
   index,

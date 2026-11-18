@@ -11,7 +11,7 @@ gsap.registerPlugin(ScrollTrigger, useGSAP);
 function Wordmark({ className }: { className: string }) {
   return (
     <div className={`absolute top-1/2 -translate-y-1/2 ${className}`}>
-      <span className="intro-wordmark block px-[0.15em] py-[0.25em] font-display text-[clamp(44px,5vw,80px)] leading-none whitespace-nowrap text-ink uppercase">
+      <span className="intro-wordmark block px-[0.15em] py-[0.25em] font-display text-[clamp(44px,5vw,80px)] leading-none tracking-[0.05em] whitespace-nowrap text-sand uppercase">
         WedBudget
       </span>
     </div>
@@ -129,13 +129,13 @@ export default function Intro() {
       {/* Each door: the panel clips its half of the wordmark; the shadow strip sits
           just past the inner edge, outside the clipping, falling onto the hero. */}
       <div className="intro-door absolute inset-y-0 left-0 w-1/2">
-        <div className="absolute inset-0 overflow-hidden bg-canvas">
+        <div className="absolute inset-0 overflow-hidden bg-plum">
           <Wordmark className="right-0 translate-x-1/2" />
         </div>
         <div className="intro-shadow absolute inset-y-0 left-full w-16 bg-linear-to-r from-black/30 to-transparent opacity-0" />
       </div>
       <div className="intro-door absolute inset-y-0 right-0 w-1/2">
-        <div className="absolute inset-0 overflow-hidden bg-canvas">
+        <div className="absolute inset-0 overflow-hidden bg-plum">
           <Wordmark className="left-0 -translate-x-1/2" />
         </div>
         <div className="intro-shadow absolute inset-y-0 right-full w-16 bg-linear-to-l from-black/30 to-transparent opacity-0" />

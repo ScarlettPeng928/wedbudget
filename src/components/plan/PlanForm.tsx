@@ -46,15 +46,15 @@ function Field({ id, label, error, children }: FieldProps) {
     <div>
       <label
         htmlFor={id}
-        className={`flex flex-col gap-2 border-b pb-3 transition-colors focus-within:border-ink ${
-          error ? 'border-warning' : 'border-line'
+        className={`flex flex-col gap-2 border-b pb-3 transition-colors focus-within:border-plum ${
+          error ? 'border-terracotta' : 'border-sand'
         }`}
       >
-        <span className="text-[13px] tracking-[0.02em] text-ink-muted">{label}</span>
+        <span className="text-[13px] tracking-[0.02em] text-cocoa">{label}</span>
         {children}
       </label>
       {error && (
-        <p id={`${id}-error`} className="mt-2 mb-0 text-[13px] text-warning">
+        <p id={`${id}-error`} className="mt-2 mb-0 text-[13px] text-terracotta">
           {error}
         </p>
       )}
@@ -63,10 +63,10 @@ function Field({ id, label, error, children }: FieldProps) {
 }
 
 const controlClass =
-  'w-full border-0 bg-transparent p-0 font-sans text-[16px] text-ink outline-none placeholder:text-ink-muted/70';
+  'w-full border-0 bg-transparent p-0 font-sans text-[16px] text-plum outline-none placeholder:text-cocoa/70';
 
 const buttonBase =
-  'cursor-pointer rounded-lg border border-ink px-[clamp(20px,2vw,28px)] py-[clamp(10px,1vw,14px)] font-serif text-[clamp(13px,1vw,15px)] tracking-[0.06em] uppercase transition-colors';
+  'cursor-pointer rounded-lg border border-plum px-[clamp(20px,2vw,28px)] py-[clamp(10px,1vw,14px)] font-serif text-[clamp(13px,1vw,15px)] tracking-[0.06em] uppercase transition-colors';
 
 type PlanFormProps = {
   initial?: PlanRequest;
@@ -181,7 +181,7 @@ export default function PlanForm({ initial, onGenerate, layout = 'stacked', focu
         >
           {/* NT$ stays visible while typing, unlike a placeholder. */}
           <span className="flex items-baseline gap-1.5">
-            <span className="text-[16px] text-ink-muted" aria-hidden="true">
+            <span className="text-[16px] text-cocoa" aria-hidden="true">
               NT$
             </span>
             <input
@@ -204,21 +204,21 @@ export default function PlanForm({ initial, onGenerate, layout = 'stacked', focu
               id={ids.city}
               value={values.city}
               onChange={(e) => update('city', e.target.value)}
-              className={`${controlClass} cursor-pointer appearance-none pr-6 ${values.city ? '' : 'text-ink-muted/70'}`}
+              className={`${controlClass} cursor-pointer appearance-none pr-6 ${values.city ? '' : 'text-cocoa/70'}`}
               {...errorProps('city')}
             >
               <option value="" disabled>
                 Select a city
               </option>
               {cities.map((city) => (
-                <option key={city.slug} value={city.slug} className="text-ink">
+                <option key={city.slug} value={city.slug} className="text-plum">
                   {city.name}
                 </option>
               ))}
             </select>
             <svg
               viewBox="0 0 16 16"
-              className="pointer-events-none absolute top-1/2 right-0 size-3.5 -translate-y-1/2 text-ink-muted"
+              className="pointer-events-none absolute top-1/2 right-0 size-3.5 -translate-y-1/2 text-cocoa"
               fill="none"
               stroke="currentColor"
               strokeWidth="1.5"
@@ -246,7 +246,7 @@ export default function PlanForm({ initial, onGenerate, layout = 'stacked', focu
 
       <div className="flex flex-col gap-4">
         {submitError && (
-          <p role="alert" className="m-0 flex items-start gap-1.5 text-[14px] text-warning">
+          <p role="alert" className="m-0 flex items-start gap-1.5 text-[14px] text-terracotta">
             <svg viewBox="0 0 16 16" className="mt-0.5 size-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
               <circle cx="8" cy="8" r="6.5" />
               <path d="M8 4.5v4M8 11v.5" />
@@ -258,16 +258,16 @@ export default function PlanForm({ initial, onGenerate, layout = 'stacked', focu
           <button
             type="submit"
             disabled={submitting}
-            className={`${look.button} ${buttonBase} bg-ink text-canvas hover:opacity-85 disabled:cursor-wait disabled:opacity-60`}
+            className={`${look.button} ${buttonBase} bg-plum text-cream hover:opacity-85 disabled:cursor-wait disabled:opacity-60`}
           >
             {submitting ? look.busyLabel : look.submitLabel}
           </button>
           {onCancel && (
-            <button type="button" onClick={onCancel} className={`${buttonBase} bg-transparent text-ink hover:bg-ink hover:text-canvas`}>
+            <button type="button" onClick={onCancel} className={`${buttonBase} bg-transparent text-plum hover:bg-plum hover:text-cream`}>
               Cancel
             </button>
           )}
-          {note && <p className={`m-0 text-[14px] text-ink-muted ${look.note}`}>{note}</p>}
+          {note && <p className={`m-0 text-[14px] text-cocoa ${look.note}`}>{note}</p>}
         </div>
       </div>
     </form>
