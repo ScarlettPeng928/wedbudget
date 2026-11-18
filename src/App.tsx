@@ -1,9 +1,8 @@
-import { Route, Routes } from 'react-router';
+import { Navigate, Route, Routes } from 'react-router';
 import HomePage from './pages/HomePage';
 import PlanPage from './pages/PlanPage';
-import ResultsPage from './pages/ResultsPage';
 import VendorsPage from './pages/VendorsPage';
-import ShortlistPage from './pages/ShortlistPage';
+import SavedPage from './pages/SavedPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 export default function App() {
@@ -11,9 +10,11 @@ export default function App() {
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/plan" element={<PlanPage />} />
-      <Route path="/plan/results" element={<ResultsPage />} />
+      {/* The plan used to live here; old links still arrive. */}
+      <Route path="/plan/results" element={<Navigate to="/plan" replace />} />
       <Route path="/vendors/:category" element={<VendorsPage />} />
-      <Route path="/shortlist" element={<ShortlistPage />} />
+      <Route path="/saved" element={<SavedPage />} />
+      <Route path="/shortlist" element={<Navigate to="/saved" replace />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );

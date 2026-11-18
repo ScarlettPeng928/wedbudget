@@ -14,12 +14,12 @@ export default function NotFoundPage() {
     <>
       <SiteHeader />
       <main className="flex min-h-svh flex-col items-center justify-center gap-8 px-[clamp(16px,3vw,48px)] pt-[clamp(64px,6vw,88px)] text-center">
-        <h1 className="m-0 max-w-[18ch] font-serif text-[clamp(36px,4vw,64px)] leading-[1.1] font-light">
+        <h1 className="m-0 max-w-[18ch] font-serif text-display font-light">
           This page doesn’t exist yet
         </h1>
         <Link
           to="/"
-          className="inline-block rounded-lg border border-plum px-[clamp(16px,1.6vw,24px)] py-[clamp(10px,1vw,14px)] font-serif text-[clamp(13px,1.1vw,16px)] tracking-[0.06em] text-plum uppercase no-underline transition-colors hover:bg-plum hover:text-cream"
+          className="inline-block rounded-lg border border-plum px-[clamp(16px,1.6vw,24px)] py-[clamp(10px,1vw,14px)] font-sans text-label tracking-[0.05em] text-plum uppercase no-underline transition-colors hover:bg-plum hover:text-cream"
         >
           Back to home
         </Link>

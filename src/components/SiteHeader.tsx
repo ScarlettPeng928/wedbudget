@@ -5,6 +5,7 @@ import { useGSAP } from "@gsap/react";
 import { Link, NavLink } from "react-router";
 import { loadPlan } from "../lib/savedPlan";
 import { useVendorPicks } from "../lib/vendorPicks";
+import SavedPeek from "./SavedPeek";
 import { budgetCategories } from "../data/budgetCategories";
 import { EASE_OUT } from "../animations/ease";
 
@@ -22,7 +23,8 @@ type SiteHeaderProps = {
   // Home page only: a see-through bar whose colors follow the section behind it.
   // Shown over the hero; past it, it hides on scroll down and comes back on scroll up.
   autoHide?: boolean;
-  // The "Plan my wedding" button on the right; hidden on the plan and results pages.
+  // The button on the right ("Plan my wedding", or "Your plan" once there is one);
+  // hidden on the plan and results pages.
   showCta?: boolean;
 };
 
@@ -51,6 +53,9 @@ export default function SiteHeader({
   // Home page: true while a dark section (marked data-header-tone="dark") sits
   // behind the bar. The page opens on the hero, which is dark.
   const [onDark, setOnDark] = useState(true);
+  // Home page: true while the hero is on screen. Its own "Begin my plan" is the one
+  // call to action there, so the bar's button waits until the hero has gone by.
+  const [overHero, setOverHero] = useState(true);
   // No background on the home page, and on every page while the menu is open: the
   // cream menu panel unrolls behind the bar, so it sits straight on it. Elsewhere it
   // is a solid cream bar. Sand over dark home sections; plum over the menu panel.
@@ -59,8 +64,10 @@ export default function SiteHeader({
   const buttonClass = darkTone ? buttonOnDark : buttonOnLight;
   // "Your plan" only appears once there is one to go back to.
   const hasPlan = loadPlan() !== null;
-  // "Your shortlist" likewise, once a vendor is saved.
-  const hasPicks = Object.keys(useVendorPicks()).length > 0;
+  // "Saved vendors" likewise, once a vendor is saved.
+  const picks = useVendorPicks();
+  const hasPicks = Object.keys(picks).length > 0;
+
 
   const openMenu = () => {
     setMenuOpen(true);
@@ -175,6 +182,9 @@ export default function SiteHeader({
             .elementsFromPoint(window.innerWidth / 2, bar.offsetHeight / 2)
             .find((el) => !bar.contains(el));
           setOnDark(under?.closest('[data-header-tone="dark"]') != null);
+          // The hero lets go of the screen when its bottom reaches the screen's bottom.
+          const heroBox = document.querySelector(".hero-media")?.getBoundingClientRect();
+          setOverHero(heroBox ? heroBox.bottom > window.innerHeight + 1 : false);
         };
         // At most once per frame, however fast the scroll events come.
         const onScroll = () => {
@@ -249,11 +259,21 @@ export default function SiteHeader({
           </Link>
 
           {/* The empty cell keeps the logo centred when the button is hidden. */}
-          <div className="justify-self-end">
+          <div className="flex items-center gap-[clamp(4px,1vw,12px)] justify-self-end">
+            {/* Home: the bookmark appears once something is saved; elsewhere it's always there. */}
+            {(!autoHide || hasPicks) && <SavedPeek onDark={darkTone} />}
             {showCta && (
-              <Link to="/plan" className={buttonClass}>
-                Plan my wedding
-              </Link>
+              // Over the hero it's invisible (and out of the tab order), then fades in.
+              // The fade is on this wrapper, so the button keeps its own color transition.
+              <span
+                className={`transition-[opacity,visibility] duration-300 ${
+                  autoHide && overHero ? "pointer-events-none invisible opacity-0" : "visible opacity-100"
+                }`}
+              >
+                <Link to="/plan" className={buttonClass}>
+                  {hasPlan ? 'Your plan' : 'Plan my wedding'}
+                </Link>
+              </span>
             )}
           </div>
         </nav>
@@ -262,7 +282,7 @@ export default function SiteHeader({
       {/* Dims the page below the open menu; clicking it closes the menu. */}
       <div
         ref={backdrop}
-        className="invisible fixed inset-0 z-[34] bg-plum/25"
+        className="invisible fixed inset-0 z-[34] bg-cocoa/30 backdrop-blur-sm"
         onClick={() => closeMenu()}
         aria-hidden="true"
       />
@@ -271,8 +291,9 @@ export default function SiteHeader({
           header bar, so bar and panel read as one cream sheet, and ends where its
           links end. It sits outside <header> because GSAP moves the header with a
           transform, which would pin a fixed child to the header. Always rendered so it
-          can animate closed; hidden (and inert) until opened. Home and "Plan my
-          wedding" aren't repeated here: the logo and the header button already do that. */}
+          can animate closed; hidden (and inert) until opened. Home and the plan
+          ("Plan my wedding" / "Your plan") aren't repeated here: the logo and the header
+          button already do that. */}
       <nav
         ref={menu}
         id="site-menu"
@@ -281,14 +302,9 @@ export default function SiteHeader({
         className="invisible fixed inset-x-0 top-0 z-[35] max-h-svh overflow-y-auto bg-cream px-[max(clamp(16px,3vw,48px),calc((100%-1440px)/2))] pt-[calc(clamp(64px,6vw,88px)+clamp(32px,5vh,56px))] pb-[clamp(40px,6vh,64px)] shadow-[0_24px_48px_-24px_rgb(44_17_26/0.3)]"
       >
         <div className="flex flex-col gap-[clamp(28px,4vh,40px)]">
-          {hasPlan && (
-            <NavLink to="/plan/results" end onClick={() => closeMenu()} className={menuLinkClass}>
-              Your plan
-            </NavLink>
-          )}
           {hasPicks && (
-            <NavLink to="/shortlist" onClick={() => closeMenu()} className={menuLinkClass}>
-              Your shortlist
+            <NavLink to="/saved" onClick={() => closeMenu()} className={menuLinkClass}>
+              Saved vendors
             </NavLink>
           )}
           <div>

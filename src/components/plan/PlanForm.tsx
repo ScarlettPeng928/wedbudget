@@ -1,8 +1,10 @@
-import { useEffect, useId, useState, type FormEvent, type ReactNode } from 'react';
-import { cities } from '../../data/cities';
+import { useEffect, useId, useState, type FormEvent } from 'react';
 import { MIN_BUDGET, type PlanRequest } from '../../api/plan';
 import { ApiError } from '../../api/client';
-import { digitsOnly, withCommas } from '../../lib/format';
+import { withCommas } from '../../lib/format';
+import PresetCombobox from './PresetCombobox';
+import Field, { primaryButton, secondaryButton } from './Field';
+import CitySelect from './CitySelect';
 
 export type FieldName = 'budget' | 'city' | 'guests';
 type Values = Record<FieldName, string>;
@@ -32,41 +34,9 @@ function validate(values: Values): Errors {
   return errors;
 }
 
-type FieldProps = {
-  id: string;
-  label: ReactNode;
-  error?: string;
-  children: ReactNode;
-};
-
-// Small label above the control on a single underline; the line darkens on focus
-// and turns terracotta on error, with the error text below it.
-function Field({ id, label, error, children }: FieldProps) {
-  return (
-    <div>
-      <label
-        htmlFor={id}
-        className={`flex flex-col gap-2 border-b pb-3 transition-colors focus-within:border-plum ${
-          error ? 'border-terracotta' : 'border-sand'
-        }`}
-      >
-        <span className="text-[13px] tracking-[0.02em] text-cocoa">{label}</span>
-        {children}
-      </label>
-      {error && (
-        <p id={`${id}-error`} className="mt-2 mb-0 text-[13px] text-terracotta">
-          {error}
-        </p>
-      )}
-    </div>
-  );
-}
-
-const controlClass =
-  'w-full border-0 bg-transparent p-0 font-sans text-[16px] text-plum outline-none placeholder:text-cocoa/70';
-
-const buttonBase =
-  'cursor-pointer rounded-lg border border-plum px-[clamp(20px,2vw,28px)] py-[clamp(10px,1vw,14px)] font-serif text-[clamp(13px,1vw,15px)] tracking-[0.06em] uppercase transition-colors';
+// Common answers offered in the budget and guests lists; any other number can be typed.
+const BUDGET_PRESETS = [100_000, 200_000, 300_000, 500_000, 800_000, 1_000_000, 1_500_000, 2_000_000, 3_000_000, 5_000_000];
+const GUEST_PRESETS = [10, 20, 30, 50, 80, 100, 120, 150, 200, 250, 300];
 
 type PlanFormProps = {
   initial?: PlanRequest;
@@ -77,37 +47,37 @@ type PlanFormProps = {
   focusField?: FieldName;
   // Shows a Cancel button next to the submit button.
   onCancel?: () => void;
-  // A short line next to the buttons, e.g. a heads-up about what submitting replaces.
-  note?: string;
+  // Overrides the layout's button text, e.g. "Generate budget plan" for a first plan.
+  submitLabel?: string;
+  busyLabel?: string;
 };
 
 const layouts = {
   stacked: {
-    form: 'flex flex-col gap-10',
+    form: 'flex flex-col gap-4',
+    row: 'flex flex-col gap-10',
     fields: 'grid gap-8',
     button: 'w-full',
     submitLabel: 'Generate budget plan',
     busyLabel: 'Generating…',
     // Under the full-width button, so it lines up with the button's left edge.
-    note: '',
   },
+  // The plan page: on wide screens the three fields and the button share one row,
+  // spanning the page so both edges line up with the plan below.
   inline: {
-    form: 'flex flex-col gap-8',
-    fields: 'grid gap-6 sm:grid-cols-3',
+    form: 'flex flex-col gap-4',
+    row: 'flex flex-col gap-8 lg:flex-row lg:items-end lg:gap-10',
+    fields: 'grid gap-6 sm:grid-cols-3 lg:flex-1',
     button: '',
     submitLabel: 'Update plan',
     busyLabel: 'Updating…',
-    // Beside the buttons on wider screens.
-    note: 'sm:ml-2',
   },
 };
 
 const toValues = (request?: PlanRequest): Values =>
-  request
-    ? { budget: String(request.totalBudget), city: request.city, guests: String(request.guestCount) }
-    : emptyValues;
+  request ? { budget: String(request.totalBudget), city: request.city, guests: String(request.guestCount) } : emptyValues;
 
-export default function PlanForm({ initial, onGenerate, layout = 'stacked', focusField, onCancel, note }: PlanFormProps) {
+export default function PlanForm({ initial, onGenerate, layout = 'stacked', focusField, onCancel, submitLabel, busyLabel }: PlanFormProps) {
   const look = layouts[layout];
   const id = useId();
   const ids = { budget: `${id}-budget`, city: `${id}-city`, guests: `${id}-guests` };
@@ -127,11 +97,6 @@ export default function PlanForm({ initial, onGenerate, layout = 'stacked', focu
     // Clear a field's error as soon as it is edited.
     setErrors((prev) => ({ ...prev, [name]: undefined }));
   };
-
-  const errorProps = (name: FieldName) => ({
-    'aria-invalid': errors[name] ? true : undefined,
-    'aria-describedby': errors[name] ? `${ids[name]}-error` : undefined,
-  });
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -168,108 +133,86 @@ export default function PlanForm({ initial, onGenerate, layout = 'stacked', focu
 
   return (
     <form noValidate onSubmit={handleSubmit} className={look.form}>
-      <div className={look.fields}>
-        <Field
-          id={ids.budget}
-          label={
-            <>
-              {labels.budget}
-              <span className="sr-only"> in NT$</span>
-            </>
-          }
-          error={errors.budget}
-        >
-          {/* NT$ stays visible while typing, unlike a placeholder. */}
-          <span className="flex items-baseline gap-1.5">
-            <span className="text-[16px] text-cocoa" aria-hidden="true">
-              NT$
-            </span>
-            <input
+      <div className={look.row}>
+        <div className={look.fields}>
+          <Field
+            id={ids.budget}
+            label={
+              <>
+                {labels.budget}
+                <span className="sr-only"> in NT$</span>
+              </>
+            }
+            error={errors.budget}
+          >
+            <PresetCombobox
               id={ids.budget}
-              type="text"
-              inputMode="numeric"
-              autoComplete="off"
+              value={values.budget}
+              onChange={(digits) => update('budget', digits)}
+              presets={BUDGET_PRESETS}
+              format={withCommas}
+              optionLabel={(n) => `NT$${n.toLocaleString('en-US')}`}
+              maxDigits={10}
               placeholder="Enter amount"
-              value={withCommas(values.budget)}
-              onChange={(e) => update('budget', digitsOnly(e.target.value))}
-              className={controlClass}
-              {...errorProps('budget')}
+              // NT$ stays visible while typing, unlike a placeholder.
+              prefix={
+                <span className="text-input text-cocoa" aria-hidden="true">
+                  NT$
+                </span>
+              }
+              invalid={!!errors.budget}
+              describedBy={errors.budget ? `${ids.budget}-error` : undefined}
             />
-          </span>
-        </Field>
+          </Field>
 
-        <Field id={ids.city} label={labels.city} error={errors.city}>
-          <div className="relative">
-            <select
+          <Field id={ids.city} label={labels.city} error={errors.city}>
+            <CitySelect
               id={ids.city}
               value={values.city}
-              onChange={(e) => update('city', e.target.value)}
-              className={`${controlClass} cursor-pointer appearance-none pr-6 ${values.city ? '' : 'text-cocoa/70'}`}
-              {...errorProps('city')}
-            >
-              <option value="" disabled>
-                Select a city
-              </option>
-              {cities.map((city) => (
-                <option key={city.slug} value={city.slug} className="text-plum">
-                  {city.name}
-                </option>
-              ))}
-            </select>
-            <svg
-              viewBox="0 0 16 16"
-              className="pointer-events-none absolute top-1/2 right-0 size-3.5 -translate-y-1/2 text-cocoa"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              aria-hidden="true"
-            >
-              <path d="M4 6l4 4 4-4" />
-            </svg>
-          </div>
-        </Field>
+              onChange={(slug) => update('city', slug)}
+              invalid={!!errors.city}
+              describedBy={errors.city ? `${ids.city}-error` : undefined}
+            />
+          </Field>
 
-        <Field id={ids.guests} label={labels.guests} error={errors.guests}>
-          <input
-            id={ids.guests}
-            type="text"
-            inputMode="numeric"
-            autoComplete="off"
-            placeholder="Enter guest count"
-            value={values.guests}
-            onChange={(e) => update('guests', digitsOnly(e.target.value, 4))}
-            className={controlClass}
-            {...errorProps('guests')}
-          />
-        </Field>
-      </div>
+          <Field id={ids.guests} label={labels.guests} error={errors.guests}>
+            <PresetCombobox
+              id={ids.guests}
+              value={values.guests}
+              onChange={(digits) => update('guests', digits)}
+              presets={GUEST_PRESETS}
+              format={(digits) => digits}
+              optionLabel={(n) => `${n} guests`}
+              maxDigits={4}
+              placeholder="Enter guest count"
+              invalid={!!errors.guests}
+              describedBy={errors.guests ? `${ids.guests}-error` : undefined}
+            />
+          </Field>
+        </div>
 
-      <div className="flex flex-col gap-4">
-        {submitError && (
-          <p role="alert" className="m-0 flex items-start gap-1.5 text-[14px] text-terracotta">
-            <svg viewBox="0 0 16 16" className="mt-0.5 size-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-              <circle cx="8" cy="8" r="6.5" />
-              <path d="M8 4.5v4M8 11v.5" />
-            </svg>
-            {submitError}
-          </p>
-        )}
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-3">
-          <button
-            type="submit"
-            disabled={submitting}
-            className={`${look.button} ${buttonBase} bg-plum text-cream hover:opacity-85 disabled:cursor-wait disabled:opacity-60`}
-          >
-            {submitting ? look.busyLabel : look.submitLabel}
+        <div className="flex shrink-0 flex-wrap items-center gap-3">
+          <button type="submit" disabled={submitting} className={`${look.button} ${primaryButton}`}>
+            {submitting ? (busyLabel ?? look.busyLabel) : (submitLabel ?? look.submitLabel)}
           </button>
           {onCancel && (
-            <button type="button" onClick={onCancel} className={`${buttonBase} bg-transparent text-plum hover:bg-plum hover:text-cream`}>
+            <button type="button" onClick={onCancel} className={secondaryButton}>
               Cancel
             </button>
           )}
-          {note && <p className={`m-0 text-[14px] text-cocoa ${look.note}`}>{note}</p>}
         </div>
       </div>
+
+      {/* Under the row, full width, so the message never squeezes the fields. */}
+      {submitError && (
+        <p role="alert" className="m-0 flex items-start gap-1.5 text-small text-terracotta">
+          <svg viewBox="0 0 16 16" className="mt-0.5 size-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+            <circle cx="8" cy="8" r="6.5" />
+            <path d="M8 4.5v4M8 11v.5" />
+          </svg>
+          {submitError}
+        </p>
+      )}
     </form>
   );
 }

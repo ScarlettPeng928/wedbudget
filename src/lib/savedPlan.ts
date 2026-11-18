@@ -44,3 +44,9 @@ export function savePlan(plan: SavedPlan) {
     // Storage blocked: the plan simply isn't remembered.
   }
 }
+
+// The one way into planning (/plan), named for where the visitor is:
+// "Plan my wedding" the first time, "Your plan" once there is one.
+export function planEntry() {
+  return { hasPlan: loadPlan() !== null, to: '/plan' };
+}

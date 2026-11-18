@@ -3,6 +3,7 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
 import { Link } from 'react-router';
+import { planEntry } from '../lib/savedPlan';
 import { heroTitleIn } from '../animations/heroTitle';
 import { SCROLL_SCRUB } from '../animations/ease';
 import { useBackgroundVideo } from '../hooks/useBackgroundVideo';
@@ -11,6 +12,8 @@ import heroVideo from '../assets/home/grass_walk_1x_zoom_centered.mp4';
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 
 export default function Hero() {
+  // "Plan my wedding" the first time, "Your plan" once there is one.
+  const plan = planEntry();
   const section = useRef<HTMLElement>(null);
   const frame = useRef<HTMLDivElement>(null);
   const content = useRef<HTMLDivElement>(null);
@@ -70,8 +73,10 @@ export default function Hero() {
           <video
             ref={video}
             // Color grade: a little less saturation and a touch of warmth, so the green
-            // field leans toward the page's warm palette without losing its life.
-            className="hero-video h-full w-full object-cover [filter:saturate(0.85)_sepia(0.15)]"
+            // field leans toward the page's warm palette without losing its life; and
+            // dimmed (brightness), the way to darken without a color laid on top, which
+            // would lift the shadows to grey.
+            className="hero-video h-full w-full object-cover [filter:saturate(0.85)_sepia(0.15)_brightness(0.78)]"
           src={heroVideo}
           autoPlay
           muted
@@ -81,12 +86,13 @@ export default function Hero() {
             aria-hidden="true"
           />
         </div>
-        {/* Shade: clear at the top, deepening to plum at the bottom, at 50% strength.
-            Plum rather than black, so the video's shadows lean toward the page's color. */}
-        <div className="absolute inset-0 -z-10 bg-linear-to-b from-transparent to-plum opacity-50" aria-hidden="true" />
+        {/* Shade: clear at the top, deepening to cocoa at the bottom. Only a warm tint
+            now: the darkening comes from the video's brightness above, since a mid-tone
+            like cocoa laid on thick turns the shadows grey and the picture flat. */}
+        <div className="absolute inset-0 -z-10 bg-linear-to-b from-transparent to-cocoa opacity-35" aria-hidden="true" />
         {/* A light shade behind the header, so its small text reads over bright frames. */}
         <div
-          className="absolute inset-x-0 top-0 -z-10 h-[clamp(120px,18vh,200px)] bg-linear-to-b from-black/30 to-transparent"
+          className="absolute inset-x-0 top-0 -z-10 h-[clamp(120px,18vh,200px)] bg-linear-to-b from-cocoa/25 to-transparent"
           aria-hidden="true"
         />
         {/* The bottom edge always fades into solid plum, the story's background, so the
@@ -118,10 +124,10 @@ export default function Hero() {
             </div>
 
             <Link
-              to="/plan"
+              to={plan.to}
               className="hero-cta group inline-flex items-center gap-[0.4em] self-start border-b border-sand pb-[0.15em] font-serif text-title leading-none font-light text-sand italic no-underline md:self-auto"
             >
-              Begin my plan
+              {plan.hasPlan ? 'Continue my plan' : 'Begin my plan'}
               {/* Thin line arrow pointing down-right. Sized in em so it scales with the text;
                   stroke follows the text color (currentColor). */}
               <svg

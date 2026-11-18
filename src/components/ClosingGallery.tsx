@@ -4,7 +4,15 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ScrollToPlugin } from "gsap/ScrollToPlugin";
 import { useGSAP } from "@gsap/react";
 import { Link } from "react-router";
+import { planEntry } from "../lib/savedPlan";
 import { EASE_IN_OUT, SCROLL_SCRUB } from "../animations/ease";
+// One wedding day in four: arriving, the rings, the toast, the sparklers at night.
+// From Unsplash (credits in CREDITS.md). Chosen with a quiet middle, where the
+// line, ring and button sit.
+import gallery1 from "../assets/home/gallery-1.jpg";
+import gallery2 from "../assets/home/gallery-2.jpg";
+import gallery3 from "../assets/home/gallery-3.jpg";
+import gallery4 from "../assets/home/gallery-4.jpg";
 
 gsap.registerPlugin(ScrollTrigger, ScrollToPlugin, useGSAP);
 
@@ -12,12 +20,13 @@ gsap.registerPlugin(ScrollTrigger, ScrollToPlugin, useGSAP);
 // another. To add one: put the file in src/assets/home/, import it at the top of this
 // file, and put it in this list in place of `undefined`. Until then each slot shows
 // a tone from the palette.
-const photos: (string | undefined)[] = [
-  undefined,
-  undefined,
-  undefined,
-  undefined,
-];
+const photos: (string | undefined)[] = [gallery1, gallery2, gallery3, gallery4];
+// Full screen only: lifts a photo whose subject stands on its bottom edge, so it
+// clears the thumbnails. The image moves up and its bottom fades into the plum
+// behind it (the section's and the footer's color), so no hard edge shows.
+const lifted: Record<number, string> = {
+  0: "-translate-y-[14%] [mask-image:linear-gradient(to_bottom,black_78%,transparent)]",
+};
 const placeholderTones = [
   "linear-gradient(160deg, var(--color-mauve), var(--color-plum))",
   "linear-gradient(200deg, var(--color-sage), var(--color-plum))",
@@ -39,11 +48,17 @@ const FADE = 0.35;
 // the ring is already drawn and the thumbnails switch the photo.
 const PINNED = "(min-width: 768px) and (prefers-reduced-motion: no-preference)";
 
-// Shared by the full-screen photos and their thumbnails.
-function PhotoFill({ index }: { index: number }) {
+// Shared by the full-screen photos and their thumbnails. The home page's shared
+// grade; full screen it's also dimmed (brightness, not a color laid over it, which
+// would turn the shadows grey) so the line and button read on any shot.
+function PhotoFill({ index, dim = false }: { index: number; dim?: boolean }) {
   const photo = photos[index];
   return photo ? (
-    <img src={photo} alt="" className="h-full w-full object-cover" />
+    <img
+      src={photo}
+      alt=""
+      className={`h-full w-full object-cover saturate-88 sepia-10 ${dim ? `brightness-[0.62] ${lifted[index] ?? ""}` : "brightness-94"}`}
+    />
   ) : (
     <div
       className="h-full w-full"
@@ -53,6 +68,8 @@ function PhotoFill({ index }: { index: number }) {
 }
 
 export default function ClosingGallery() {
+  // "Plan my wedding" the first time, "Your plan" once there is one.
+  const plan = planEntry();
   const section = useRef<HTMLElement>(null);
   // The photo on show, which the thumbnails highlight.
   const [active, setActive] = useState(0);
@@ -162,11 +179,11 @@ export default function ClosingGallery() {
           }`}
           aria-hidden="true"
         >
-          <PhotoFill index={i} />
+          <PhotoFill index={i} dim />
         </div>
       ))}
-      {/* Plum veil over every photo, so the text reads on light and dark shots alike. */}
-      <div className="absolute inset-0 -z-10 bg-plum/40" aria-hidden="true" />
+      {/* A soft plum shade behind the middle only, where the line and button sit. */}
+      <div className="absolute inset-0 -z-10 bg-radial from-plum/35 via-plum/10 to-transparent" aria-hidden="true" />
 
       <div className="relative size-[min(88vw,440px)] md:size-[min(70vh,600px)]">
         <svg
@@ -198,10 +215,10 @@ export default function ClosingGallery() {
             Every dollar of your budget, given a place.
           </p>
           <Link
-            to="/plan"
+            to={plan.to}
             className="inline-block rounded-lg border border-sand px-[clamp(16px,1.6vw,24px)] py-[clamp(10px,1vw,14px)] font-sans text-label tracking-[0.05em] text-sand uppercase no-underline transition-colors hover:bg-sand hover:text-plum"
           >
-            Plan my wedding
+            {plan.hasPlan ? 'Your plan' : 'Plan my wedding'}
           </Link>
         </div>
       </div>

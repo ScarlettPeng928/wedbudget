@@ -40,7 +40,7 @@ export default function CategoryCards() {
           invalidateOnRefresh: true,
         });
         // The row slides left exactly as far as the page scrolls.
-        gsap.to(track.current, {
+        const slide = gsap.to(track.current, {
           x: () => -distance(),
           ease: "none",
           scrollTrigger: {
@@ -51,7 +51,56 @@ export default function CategoryCards() {
             invalidateOnRefresh: true,
           },
         });
+
+        // Everything below rides on that same sideways slide (containerAnimation),
+        // so it moves in step with the cards, scrubbed by the scroll.
+
+        gsap.utils.toArray<HTMLElement>(".cat-card").forEach((card) => {
+          const photo = card.querySelector(".cat-photo");
+
+          // Focus: once past the middle, heading off to the left, it steps back:
+          // fainter and a little smaller. The cards still to come stay clear, the
+          // last one included (it stops at the right edge, never reaching the middle).
+          gsap.fromTo(
+            card,
+            { scale: 1, opacity: 1 },
+            {
+              scale: 0.94,
+              opacity: 0.45,
+              ease: "none",
+              immediateRender: false,
+              scrollTrigger: {
+                trigger: card,
+                containerAnimation: slide,
+                start: "center center",
+                end: "right left",
+                scrub: true,
+              },
+            },
+          );
+
+          // Parallax: the photo, a little larger than its frame, drifts the other
+          // way as the card crosses the screen, like a view through a window.
+          if (photo) {
+            gsap.fromTo(
+              photo,
+              { scale: 1.18, xPercent: -6 },
+              {
+                xPercent: 6,
+                ease: "none",
+                scrollTrigger: {
+                  trigger: card,
+                  containerAnimation: slide,
+                  start: "left right",
+                  end: "right left",
+                  scrub: true,
+                },
+              },
+            );
+          }
+        });
       });
+
     },
     { scope: section },
   );
@@ -62,11 +111,11 @@ export default function CategoryCards() {
       aria-labelledby="categories-title"
       // Oat: the same color as sand at 50%, but solid. HowItWorks below uses it too,
       // so the two read as one sheet.
-      className="flex flex-col justify-center overflow-hidden bg-oat py-[clamp(64px,10vh,120px)] md:min-h-svh"
+      className="relative z-10 flex flex-col justify-center overflow-hidden bg-oat py-[clamp(64px,10vh,120px)] md:min-h-svh"
     >
       {/* Side padding matches the header and hero: the gutter, or the 1440px content
-          edge on wide screens. Desktop with motion: the first card starts at the middle
-          of the screen, the left half left empty, and the row slides in from there until
+          edge on wide screens. Desktop with motion: the first card starts centred on the
+          screen, the space to its left empty, and the row slides in from there until
           the last card reaches the right edge. Phones and reduced motion scroll this row
           sideways, snapping each card to the left edge (scroll-padding). */}
       {/* The title stays put, centered, while the cards slide underneath it. */}
@@ -84,32 +133,39 @@ export default function CategoryCards() {
       <div className="w-full">
         <ul
           ref={track}
-          className="m-0 flex w-full list-none snap-x snap-mandatory gap-[clamp(16px,2vw,32px)] overflow-x-auto px-[max(clamp(16px,3vw,48px),calc((100vw-1440px)/2))] scroll-px-[max(clamp(16px,3vw,48px),calc((100vw-1440px)/2))] [scrollbar-width:none] motion-safe:md:w-max motion-safe:md:snap-none motion-safe:md:overflow-visible motion-safe:md:pl-[50vw]"
+          className="m-0 flex w-full list-none snap-x snap-mandatory gap-[clamp(16px,2vw,32px)] overflow-x-auto px-[max(clamp(16px,3vw,48px),calc((100vw-1440px)/2))] scroll-px-[max(clamp(16px,3vw,48px),calc((100vw-1440px)/2))] [scrollbar-width:none] motion-safe:md:w-max motion-safe:md:snap-none motion-safe:md:overflow-visible motion-safe:md:pl-[calc(50vw-clamp(220px,24vw,360px)/2)]"
         >
           {budgetCategories.map((category) => (
             <li
               key={category.slug}
-              className="w-[min(72vw,360px)] shrink-0 snap-start md:w-[clamp(220px,24vw,360px)]"
+              className="cat-card w-[min(72vw,360px)] shrink-0 snap-start md:w-[clamp(220px,24vw,360px)]"
             >
               <Link
                 to={`/vendors/${category.slug}`}
                 className="group block text-center text-plum no-underline"
               >
+                {/* Two layers, two motions: this wrapper zooms on hover, the photo
+                    inside drifts with the scroll (parallax). GSAP sets the CSS scale
+                    of what it animates to none, so one element can't do both. */}
                 <div className="aspect-4/3 overflow-hidden bg-rosewood">
                   {category.cover && (
-                    <img
-                      src={category.cover}
-                      alt=""
-                      className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105 motion-reduce:transition-none"
-                    />
+                    <div className="h-full w-full transition-[scale] duration-500 ease-out group-hover:scale-110 motion-reduce:transition-none">
+                      <img
+                        src={category.cover}
+                        alt=""
+                        // A light shared grade (a touch less saturated, a touch warmer, a little dimmer so whites don't outshine the oat) so
+                        // photos from different shoots sit together on the oat background.
+                        className="cat-photo h-full w-full object-cover saturate-88 sepia-10 brightness-94"
+                      />
+                    </div>
                   )}
                 </div>
-                <p className="mt-[clamp(10px,1.2vw,16px)] mb-0 font-sans text-label tracking-[0.05em] uppercase">
-                  {category.name}
-                </p>
-                <p className="mt-1.5 mb-0 font-sans text-small text-cocoa">
-                  {category.share}% of your budget
-                </p>
+                {/* A showcase card: the name as a serif heading and a line about what
+                    the category is for (docs/typography.md §7, home category cards). */}
+                <div>
+                  <p className="mt-[clamp(12px,1.4vw,18px)] mb-0 font-serif text-lead font-light">{category.name}</p>
+                  <p className="mx-auto mt-1.5 mb-0 max-w-[30ch] font-sans text-small text-pretty text-cocoa">{category.tagline}</p>
+                </div>
               </Link>
             </li>
           ))}

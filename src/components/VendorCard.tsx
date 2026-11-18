@@ -1,84 +1,148 @@
-import type { ReactNode } from 'react';
-import { Link } from 'react-router';
-import { toggleSaved, useVendorPicks, type PickVendor } from '../lib/vendorPicks';
+import { useRef, type ReactNode, type RefObject } from 'react';
+import { flyToSaved } from '../animations/flyToSaved';
+import { isSaved, toggleSaved, useVendorPicks, type PickVendor } from '../lib/vendorPicks';
+import { useVisits } from '../lib/visits';
+import { hasUpcomingVisit } from '../lib/calendar';
+
+// Until a vendor has its own website (demo vendors don't), the card opens a Google
+// Maps search for real vendors of the same kind in the same city. Searched in
+// Chinese, which finds Taiwanese businesses far better. No business is named or
+// linked as if it were this vendor.
+const MAP_SEARCH: Record<string, string> = {
+  venues: '婚宴會館',
+  photography: '婚禮攝影',
+  attire: '婚紗禮服',
+  'bridal-styling': '新娘秘書',
+  hosting: '婚禮主持',
+  favors: '喜餅',
+};
+
+function mapSearchUrl(category: string | undefined, cityName: string | undefined) {
+  const keyword = category ? MAP_SEARCH[category] : undefined;
+  if (!keyword) return null;
+  const query = cityName ? `${keyword} ${cityName}` : `${keyword} Taiwan`;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
 
 type CardVendor = PickVendor & {
   imageUrl: string | null;
   websiteUrl: string | null;
   isDemo: boolean;
+  city?: { name: string };
 };
 
-// Photo and name, shared by the results page and the vendors pages. Each page
-// passes its own price line as children. With `category`, the card also gets a
-// Save button that adds this vendor to that category's shortlist.
+// Photo, then the name with the bookmark on its right, shared by the plan page and
+// the vendors pages. Each page passes its own price line as children. Without
+// `category` there's no bookmark. Hovering the card slowly zooms the photo.
 export default function VendorCard({ vendor, category, children }: { vendor: CardVendor; category?: string; children?: ReactNode }) {
-  const body = (
-    <>
-      <div className="relative aspect-4/3 overflow-hidden rounded-lg bg-linen">
-        {vendor.imageUrl && <img src={vendor.imageUrl} alt="" loading="lazy" className="h-full w-full object-cover" />}
-        {vendor.isDemo && (
-          <span className="absolute top-2.5 right-2.5 rounded-md bg-cream/90 px-2 py-0.5 text-[11px] tracking-[0.06em] text-cocoa uppercase">
-            Demo
-          </span>
-        )}
-      </div>
-      <p className="mt-3 mb-0 font-serif text-[17px]">{vendor.name}</p>
-      {children}
-    </>
-  );
+  // The photo, which flies to the header's bookmark when the vendor is saved.
+  const photo = useRef<HTMLDivElement>(null);
+
+  // The vendor's own website, or else the map search above. The photo and the name
+  // each link there (the bookmark sits between them in the layout, and a button
+  // inside a link is invalid HTML); the photo's link is skipped by the keyboard and
+  // screen readers so the vendor isn't announced twice.
+  const href = vendor.websiteUrl ?? mapSearchUrl(category, vendor.city?.name);
+  const link = (content: ReactNode, secondary = false) =>
+    href ? (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        tabIndex={secondary ? -1 : undefined}
+        aria-hidden={secondary || undefined}
+        className="block text-inherit no-underline"
+      >
+        {content}
+      </a>
+    ) : (
+      content
+    );
 
   return (
-    <div>
-      {/* Demo vendors have no website yet, so only real ones are links. The button
-          sits outside the link: a button inside a link is invalid HTML. */}
-      {vendor.websiteUrl ? (
-        <a href={vendor.websiteUrl} target="_blank" rel="noopener noreferrer" className="block text-inherit no-underline">
-          {body}
-        </a>
-      ) : (
-        body
+    <div className="group/card">
+      {link(
+        <div ref={photo} className="relative aspect-4/3 overflow-hidden rounded-lg bg-linen">
+          {vendor.imageUrl && (
+            <img
+              src={vendor.imageUrl}
+              alt=""
+              loading="lazy"
+              className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover/card:scale-108 motion-reduce:transition-none motion-reduce:group-hover/card:scale-100"
+            />
+          )}
+          {vendor.isDemo && (
+            <span className="absolute top-2.5 left-2.5 rounded-md bg-cream/90 px-2 py-0.5 text-label tracking-[0.06em] text-cocoa uppercase">
+              Demo
+            </span>
+          )}
+        </div>,
+        true,
       )}
-      {category && <SaveButton category={category} vendor={vendor} />}
+      <div className="mt-3 flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          {link(
+            <p className="m-0 font-serif text-body">
+              {vendor.name}
+              {/* Opens another site in a new tab: screen readers hear where it goes. */}
+              {href && (
+                <>
+                  <span className="sr-only">
+                    {vendor.websiteUrl ? ' (website, opens in a new tab)' : ' (similar vendors on Google Maps, opens in a new tab)'}
+                  </span>
+                </>
+              )}
+            </p>,
+          )}
+        </div>
+        {category && <SaveButton category={category} vendor={vendor} photo={photo} />}
+      </div>
+      {children}
     </div>
   );
 }
 
-function SaveButton({ category, vendor }: { category: string; vendor: PickVendor }) {
-  const picks = useVendorPicks()[category];
-  const saved = picks?.saved.some((v) => v.id === vendor.id) ?? false;
-  const booked = saved && picks?.bookedId === vendor.id;
-  const check = (
-    <svg viewBox="0 0 16 16" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true">
-      <path d="M3 8.5l3.2 3L13 4.5" />
-    </svg>
-  );
-  // A booked vendor may carry a quote, so one tap here mustn't drop it: the card
-  // links to the shortlist instead, where booking and removing happen.
-  if (booked) {
-    return (
-      <Link
-        to={`/shortlist#${category}`}
-        className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-plum bg-plum px-3 py-1.5 font-sans text-label tracking-[0.05em] text-cream uppercase no-underline transition-colors hover:bg-plum/85"
-      >
-        {check}
-        Booked
-        <span className="sr-only"> {vendor.name}, open shortlist</span>
-      </Link>
-    );
-  }
+// The bookmark beside the name: outlined to save, filled once saved. The icon is
+// small, but the button around it is 36px so it's easy to hit on a phone; negative
+// margins keep it lined up with the name and the card's right edge.
+// Saving sends the photo flying to the header; un-saving just empties the bookmark.
+function SaveButton({ category, vendor, photo }: { category: string; vendor: CardVendor; photo: RefObject<HTMLDivElement | null> }) {
+  const saved = isSaved(useVendorPicks(), category, vendor.id);
+  // Saved with a visit arranged: stays saved (see hasUpcomingVisit), so the bookmark
+  // shows filled but does nothing.
+  // Hooks run on every render, so visits are read before the condition.
+  const visits = useVisits();
+  const locked = saved && hasUpcomingVisit(visits, category, vendor.id);
   return (
     <button
       type="button"
-      onClick={() => toggleSaved(category, vendor)}
+      onClick={() => {
+        if (locked) return;
+        if (!saved && photo.current) flyToSaved(photo.current);
+        toggleSaved(category, { ...vendor, cityName: vendor.city?.name });
+      }}
       aria-pressed={saved}
-      className={`mt-3 inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 font-sans text-label tracking-[0.05em] uppercase transition-colors ${
-        saved ? 'border-plum bg-plum text-cream hover:bg-plum/85' : 'border-plum bg-transparent text-plum hover:bg-plum hover:text-cream'
+      aria-disabled={locked || undefined}
+      aria-label={`Save ${vendor.name}`}
+      className={`-mt-1.5 -mr-2 flex size-9 shrink-0 items-center justify-center border-0 bg-transparent p-0 transition-[color,transform] duration-150 ease-out motion-reduce:transition-none ${
+        locked
+          ? 'cursor-default text-rosewood'
+          : saved
+            ? 'cursor-pointer text-rosewood active:scale-90'
+            : 'cursor-pointer text-cocoa hover:text-plum active:scale-90'
       }`}
     >
-      {saved && check}
-      {saved ? 'Saved' : 'Save'}
-      {/* Screen readers hear which vendor each button is for. */}
-      <span className="sr-only"> {vendor.name}</span>
+      <svg
+        viewBox="0 0 24 24"
+        className={`size-5 ${saved ? 'fill-rosewood' : 'fill-transparent'}`}
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2Z" />
+      </svg>
     </button>
   );
 }
@@ -88,8 +152,8 @@ export function VendorCardSkeleton() {
   return (
     <>
       <div className="aspect-4/3 rounded-lg bg-linen" />
-      <div className="mt-3 h-[17px] w-2/3 rounded bg-linen" />
-      <div className="mt-2 h-[14px] w-1/2 rounded bg-linen" />
+      <div className="mt-3 h-[17px] w-2/3 rounded-sm bg-linen" />
+      <div className="mt-2 h-[14px] w-1/2 rounded-sm bg-linen" />
     </>
   );
 }

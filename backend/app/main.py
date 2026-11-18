@@ -8,10 +8,10 @@ Then open http://localhost:8000/docs to try every endpoint in the browser.
 import logging
 from typing import Annotated
 
-from fastapi import Depends, FastAPI, Request
+from fastapi import Depends, FastAPI, Query, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from sqlalchemy import func, select, text
+from sqlalchemy import case, func, select, text
 from sqlalchemy.orm import Session, joinedload
 
 from . import rules
@@ -180,9 +180,26 @@ def match_vendors(body: VendorMatchRequest, session: DbSession):
 
 
 @app.get('/api/vendors', response_model=list[VendorListItem])
-def list_vendors(session: DbSession, category: str, city: str | None = None, subcategory: str | None = None):
+def list_vendors(
+    session: DbSession,
+    category: str,
+    city: str | None = None,
+    subcategory: str | None = None,
+    budget: Annotated[int | None, Query(ge=0, le=rules.MAX_BUDGET)] = None,
+    guests: Annotated[int | None, Query(ge=1, le=rules.MAX_GUESTS)] = None,
+    seed: Annotated[int | None, Query(ge=0, le=2_147_483_647)] = None,
+    offset: Annotated[int, Query(ge=0, le=10_000)] = 0,
+    limit: Annotated[int, Query(ge=1, le=rules.MAX_VENDORS_PER_REQUEST)] = rules.VENDORS_PER_PAGE,
+):
     """Random vendors in one category for the vendors page. Leave out `city` for all of
-    Taiwan, and `subcategory` for every kind of vendor in the category."""
+    Taiwan, and `subcategory` for every kind of vendor in the category.
+
+    With `budget` (and `guests`, which it needs), only vendors whose estimated cost
+    for that many guests fits the budget: the same rule as the plan page's matches.
+
+    Paging ("Show more"): pass the same `seed` with a growing `offset`. The seed fixes
+    one shuffled order, so later pages continue it without repeats; a new seed (a new
+    visit) gives a new order. Without a seed, a fresh random pick each time."""
     found = session.scalar(select(Category).where(Category.slug == category))
     if found is None:
         raise FieldError('category', FIELD_MESSAGES['category']['default'])
@@ -202,8 +219,26 @@ def list_vendors(session: DbSession, category: str, city: str | None = None, sub
             raise FieldError('subcategory', FIELD_MESSAGES['subcategory']['default'])
         query = query.where(Vendor.subcategory_id == sub.id)
 
-    # NEWID() gives every row a random value, so sorting by it shuffles the vendors.
-    query = query.order_by(func.newid()).limit(rules.VENDORS_PER_PAGE)
+    if budget is not None:
+        # Per-guest and per-table prices depend on the guest count.
+        if guests is None:
+            raise FieldError('guestCount', FIELD_MESSAGES['guestCount']['default'])
+        # rules.estimated_cost, written as SQL so the database filters before picking
+        # the random few (filtering afterwards would leave fewer than a page).
+        estimated = case(
+            (Vendor.price_unit == 'table', Vendor.price_min * rules.table_count(guests)),
+            (Vendor.price_unit == 'guest', Vendor.price_min * guests),
+            else_=Vendor.price_min,
+        )
+        query = query.where(estimated <= budget)
+
+    if seed is None:
+        # NEWID() gives every row a random value, so sorting by it shuffles the vendors.
+        query = query.order_by(func.newid()).limit(limit)
+    else:
+        # CHECKSUM(Id, seed) scrambles the ids the same way for the same seed: a stable
+        # shuffle that OFFSET can page through. Id breaks the rare tie.
+        query = query.order_by(func.checksum(Vendor.id, seed), Vendor.id).offset(offset).limit(limit)
     return [
         VendorListItem(
             id=v.id,

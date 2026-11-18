@@ -313,3 +313,23 @@ Vendor photos are from [Unsplash](https://unsplash.com/?utm_source=wedbudget&utm
 - [Photo](https://unsplash.com/photos/black-and-gold-gift-box-gOyJlO56j-Y?utm_source=wedbudget&utm_medium=referral) by [Rae Wallis](https://unsplash.com/@raewallis?utm_source=wedbudget&utm_medium=referral)
 - [Photo](https://unsplash.com/photos/tray-of-chocolates-ONn4OfAnxZY?utm_source=wedbudget&utm_medium=referral) by [Monique Carrati](https://unsplash.com/@moniquecarrati?utm_source=wedbudget&utm_medium=referral)
 - [Photo](https://unsplash.com/photos/a-group-of-red-and-gold-objects-20mu1Uo9ex0?utm_source=wedbudget&utm_medium=referral) by [Scarlett Alt](https://unsplash.com/@scarlettalt?utm_source=wedbudget&utm_medium=referral)
+
+## Vendors page banners
+
+One photo per category, across the top of /vendors/<category> (src/assets/vendors/).
+
+- venues: [Photo](https://unsplash.com/photos/a-large-room-with-tables-and-chairs-in-it-KlEZTPp3csI?utm_source=wedbudget&utm_medium=referral) by [Steven Van Elk](https://unsplash.com/@stevenvanelk?utm_source=wedbudget&utm_medium=referral)
+- photography: [Photo](https://unsplash.com/photos/man-in-black-suit-holding-black-nikon-dslr-camera-abPrOvbLdAw?utm_source=wedbudget&utm_medium=referral) by [Natilyn Hicks Photography](https://unsplash.com/@natilyn?utm_source=wedbudget&utm_medium=referral)
+- attire: [Photo](https://unsplash.com/photos/elegant-wedding-dresses-displayed-in-a-modern-bridal-boutique-w1_Q8k9hyWg?utm_source=wedbudget&utm_medium=referral) by [Lucas T Photography](https://unsplash.com/@lucastphotography?utm_source=wedbudget&utm_medium=referral)
+- bridal-styling: [Photo](https://unsplash.com/photos/makeup-artist-applying-makeup-to-a-bride-W5jxKl8_jRs?utm_source=wedbudget&utm_medium=referral) by [Fotógrafo Samuel Cruz](https://unsplash.com/@fotografosamuelcruz?utm_source=wedbudget&utm_medium=referral)
+- hosting: [Photo](https://unsplash.com/photos/selective-focus-photography-white-and-pink-isle-flower-arrangement-fJzmPe-a0eU?utm_source=wedbudget&utm_medium=referral) by [Shardayyy Photography](https://unsplash.com/@shardayyy?utm_source=wedbudget&utm_medium=referral)
+- favors: [Photo](https://unsplash.com/photos/clear-glass-mason-jar-on-top-of-white-table-napkin-between-forks-and-knives-CgR5Ey7LNAE?utm_source=wedbudget&utm_medium=referral) by [Wedding Photography](https://unsplash.com/@wedding_photography?utm_source=wedbudget&utm_medium=referral)
+
+## Home page closing gallery
+
+The four full-screen photos before the footer (src/assets/home/gallery-1…4.jpg).
+
+- Photo 1: [Photo](https://unsplash.com/photos/a-bride-and-groom-walking-on-a-hill-IfjHaIoAoqE?utm_source=wedbudget&utm_medium=referral) by [Foto Pettine](https://unsplash.com/@fotopettine?utm_source=wedbudget&utm_medium=referral)
+- Photo 2: [Photo](https://unsplash.com/photos/woman-giving-wedding-ring-to-man-LVfRmw5yZeo?utm_source=wedbudget&utm_medium=referral) by [Jeremy Wong Weddings](https://unsplash.com/@jeremywongweddings?utm_source=wedbudget&utm_medium=referral)
+- Photo 3: [Photo](https://unsplash.com/photos/people-raising-wine-glass-in-selective-focus-photography-ULHxWq8reao?utm_source=wedbudget&utm_medium=referral) by [Al Elmes](https://unsplash.com/@alelmes?utm_source=wedbudget&utm_medium=referral)
+- Photo 4: [Photo](https://unsplash.com/photos/people-gathering-in-a-concert-during-night-time-QL5PgKelw4s?utm_source=wedbudget&utm_medium=referral) by [Elisabeth Arnold](https://unsplash.com/@elisabetha?utm_source=wedbudget&utm_medium=referral)

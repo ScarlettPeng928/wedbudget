@@ -37,10 +37,17 @@ export const matchVendors = (request: VendorMatchRequest, signal?: AbortSignal) 
   postJson<Record<string, Vendor[]>>('/api/vendors/match', request, signal);
 
 // Leave out `city` for all of Taiwan, `subcategory` for every kind of vendor.
+// `budget` (NT$, digits) keeps only vendors whose estimated cost for `guests` fits it.
 export type VendorListRequest = {
   category: string;
   city?: string;
   subcategory?: string;
+  budget?: string;
+  guests?: string;
+  // Paging: the same seed keeps one shuffled order; offset and limit pick the slice.
+  seed?: string;
+  offset?: string;
+  limit?: string;
 };
 
 // Up to 8 random vendors in one category (backend/SPEC.md 5.6).

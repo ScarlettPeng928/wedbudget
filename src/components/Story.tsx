@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
@@ -22,6 +22,9 @@ const PIN_LENGTH = 2;
 // The words start to light up a little before the hold, when the section's top is
 // this far down the screen (0.2 = 20%). Bigger starts earlier, smaller later.
 const REVEAL_START = 0.2;
+// The frame shown before the video plays, in seconds: the dress and bouquet, rather
+// than the clip's opening close-up of one face. Playback starts from here too.
+const PREVIEW_TIME = 3;
 
 // Each word is its own span so the scroll can light them up one by one, rosewood to sand.
 function Words({ text }: { text: string }) {
@@ -53,6 +56,18 @@ export default function Story() {
   // Pauses the video while the story is off screen.
   useBackgroundVideo(section, video);
 
+  // Show the preview frame as soon as the video knows its length.
+  useEffect(() => {
+    const el = video.current;
+    if (!el) return;
+    const toPreview = () => {
+      if (el.paused) el.currentTime = PREVIEW_TIME;
+    };
+    if (el.readyState >= 1) toPreview();
+    else el.addEventListener("loadedmetadata", toPreview, { once: true });
+    return () => el.removeEventListener("loadedmetadata", toPreview);
+  }, []);
+
   useGSAP(
     () => {
       // Reduced motion: no hold, the words are simply lit and the video stays in its
@@ -83,6 +98,9 @@ export default function Story() {
         // `slide` moves the small frame up from its corner (in px, negative = higher);
         // `grow` goes from 0 (small frame) to 1 (full screen).
         const state = { slide: 0, grow: 0 };
+        // Whether the video is playing: it starts as the frame begins to grow, and
+        // stops (back to the preview frame) if the scroll goes back before that.
+        let playing = false;
         let box = { x: 0, y: 0, w: 0, h: 0 }; // the full screen, relative to the slot
         let frame = { w: 0, h: 0 }; // the small frame
         let slideFrom = 0; // where the slide starts: one gutter below the section's top
@@ -129,6 +147,17 @@ export default function Story() {
           const el = media.current!;
           el.style.transform = `translate(${x}px, ${y}px) scale(${k})`;
           el.style.clipPath = `inset(${insetY}px ${insetX}px)`;
+
+          const shouldPlay = grow > 0.02;
+          if (shouldPlay !== playing && video.current) {
+            playing = shouldPlay;
+            if (shouldPlay) {
+              void video.current.play().catch(() => {});
+            } else {
+              video.current.pause();
+              video.current.currentTime = PREVIEW_TIME;
+            }
+          }
         };
 
         // The story, scrubbed by the scroll:
@@ -210,6 +239,8 @@ export default function Story() {
         return () => {
           media.current?.style.removeProperty("transform");
           media.current?.style.removeProperty("clip-path");
+          // Without the growing frame nothing starts the video, so it stops here too.
+          video.current?.pause();
         };
       });
     },
@@ -250,26 +281,28 @@ export default function Story() {
             ref={media}
             className="absolute top-0 left-0 h-full w-full overflow-hidden bg-rosewood will-change-transform"
           >
+            {/* No autoplay: it waits on the preview frame and starts when it begins to
+                grow to full screen (render() in the timeline above). With reduced
+                motion it never grows, so it never plays on its own. */}
             <video
               ref={video}
               className="h-full w-full object-cover"
               src={storyVideo}
-              autoPlay
               muted
               loop
               playsInline
-              preload="metadata"
+              preload="auto"
               aria-hidden="true"
             />
-            {/* Color grade: plum blended in with soft-light, so the footage's shadows turn
-                wine-red and its sky a soft rose, matching the plum page around it. */}
+            {/* Color grade: cocoa blended in with soft-light, a warm neutral tone that
+                ties the footage to the page without turning it red. */}
             <div
-              className="pointer-events-none absolute inset-0 bg-plum opacity-40 mix-blend-soft-light"
+              className="pointer-events-none absolute inset-0 bg-cocoa opacity-40 mix-blend-soft-light"
               aria-hidden="true"
             />
             {/* Darkens the video as the section slides away. */}
             <div
-              className="story-veil pointer-events-none absolute inset-0 bg-black opacity-0"
+              className="story-veil pointer-events-none absolute inset-0 bg-cocoa opacity-0"
               aria-hidden="true"
             />
           </div>

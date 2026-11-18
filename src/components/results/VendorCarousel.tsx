@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router';
 import type { Vendor } from '../../api/vendors';
-import { formatNT } from '../../lib/format';
+import { formatNT, formatPriceRange } from '../../lib/format';
 import VendorCard, { VendorCardSkeleton } from '../VendorCard';
 
 // Card width: most of the screen on phones (the next card peeks in), three per row from sm up.
@@ -13,9 +14,9 @@ function ArrowButton({ label, direction, disabled, onClick }: { label: string; d
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className="flex size-10 cursor-pointer items-center justify-center rounded-lg border border-plum text-plum transition-colors hover:bg-plum hover:text-cream disabled:cursor-default disabled:border-sand disabled:bg-transparent disabled:text-sand"
+      className="flex size-8 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent p-0 text-cocoa/60 transition-colors hover:bg-linen hover:text-plum disabled:cursor-default disabled:bg-transparent disabled:text-sand/60"
     >
-      <svg viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+      <svg viewBox="0 0 16 16" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
         <path d={direction === -1 ? 'M10 3L5 8l5 5' : 'M6 3l5 5-5 5'} />
       </svg>
     </button>
@@ -32,12 +33,15 @@ export default function VendorCarousel({
   amount,
   vendors,
   updating = false,
+  seeAllHref,
 }: {
   slug: string;
   title: string;
   amount: number;
   vendors: Vendor[] | null;
   updating?: boolean;
+  // The vendors page for this category, in the plan's city.
+  seeAllHref: string;
 }) {
   const track = useRef<HTMLUListElement>(null);
   const [atStart, setAtStart] = useState(true);
@@ -76,18 +80,40 @@ export default function VendorCarousel({
     <section aria-labelledby={headingId} className="scroll-mt-[calc(clamp(64px,6vw,88px)+24px)]">
       <div className="mb-4 flex items-center justify-between gap-4">
         <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
-          <h3 id={headingId} className="m-0 font-serif text-[clamp(20px,1.7vw,26px)] font-light">
+          <h3 id={headingId} className="m-0 font-sans text-lead font-normal">
             {title}
           </h3>
-          <p className="m-0 text-[15px] text-cocoa tabular-nums">{formatNT(amount)}</p>
+          <p className="m-0 text-body text-cocoa tabular-nums">{formatNT(amount)}</p>
         </div>
-        {/* Phones swipe the row instead. No arrows when there is nothing to page through. */}
-        {!empty && (
-          <div className="hidden shrink-0 gap-2 sm:flex">
-            <ArrowButton label={`Previous ${title} vendors`} direction={-1} disabled={atStart} onClick={() => scroll(-1)} />
-            <ArrowButton label={`Next ${title} vendors`} direction={1} disabled={atEnd} onClick={() => scroll(1)} />
-          </div>
-        )}
+        <div className="flex shrink-0 items-center gap-4">
+          {/* The row shows a few; the vendors page has every one in the city. */}
+          {/* The arrow appears on hover or press, outside the text so nothing shifts;
+              it points on to the vendors page, whose Back link points back here. */}
+          <Link
+            to={seeAllHref}
+            className="group relative text-body whitespace-nowrap text-plum underline decoration-rosewood decoration-1 underline-offset-[0.2em] hover:decoration-plum"
+          >
+            See all
+            <span className="sr-only"> {title} vendors</span>
+            <svg
+              viewBox="0 0 16 16"
+              className="absolute top-1/2 -right-4 size-3 -translate-x-1 -translate-y-1/2 opacity-0 transition-[opacity,translate] duration-200 ease-out group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100 group-active:translate-x-0 group-active:opacity-100 motion-reduce:transition-opacity"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              aria-hidden="true"
+            >
+              <path d="M3 8h10M9 4l4 4-4 4" />
+            </svg>
+          </Link>
+          {/* Phones swipe the row instead. No arrows when there is nothing to page through. */}
+          {!empty && (
+            <div className="hidden gap-1 sm:flex">
+              <ArrowButton label={`Previous ${title} vendors`} direction={-1} disabled={atStart} onClick={() => scroll(-1)} />
+              <ArrowButton label={`Next ${title} vendors`} direction={1} disabled={atEnd} onClick={() => scroll(1)} />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Fades while updating, so even an unchanged row shows it was checked again. */}
@@ -96,7 +122,7 @@ export default function VendorCarousel({
       {empty ? (
         <p
           aria-busy={updating}
-          className={`m-0 rounded-lg border border-dashed border-sand px-5 py-8 text-center text-[15px] text-cocoa transition-opacity duration-200 ${updating ? 'opacity-40' : ''}`}
+          className={`m-0 rounded-lg border border-dashed border-sand px-5 py-8 text-center text-body text-cocoa transition-opacity duration-200 ${updating ? 'opacity-40' : ''}`}
         >
           No vendors in this budget yet.
         </p>
@@ -117,9 +143,8 @@ export default function VendorCarousel({
                 <li key={vendor.id} className={CARD}>
                   <VendorCard vendor={vendor} category={slug}>
                     {/* No city here: every vendor on the page is in the plan's city, named in the headline. */}
-                    <p className="mt-1 mb-0 text-[14px] text-cocoa tabular-nums">
-                      <span className="sr-only">Estimated total </span>
-                      {formatNT(vendor.estimatedCost)}
+                    <p className="mt-1 mb-0 text-small text-plum tabular-nums">
+                      {formatPriceRange(vendor.priceMin, vendor.priceMax, vendor.priceUnit)}
                     </p>
                   </VendorCard>
                 </li>

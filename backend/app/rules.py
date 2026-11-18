@@ -14,6 +14,8 @@ GUESTS_PER_TABLE = 10  # Taiwanese banquets seat 10 per table.
 VENDORS_PER_CATEGORY = 6
 # The vendors page (GET /api/vendors) shows this many random vendors at a time.
 VENDORS_PER_PAGE = 8
+# The most one request may ask for (each "Show more" asks for a page and one extra).
+MAX_VENDORS_PER_REQUEST = 48
 
 
 class ShareLike(Protocol):

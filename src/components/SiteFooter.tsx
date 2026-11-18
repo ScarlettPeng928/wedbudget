@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { planEntry } from "../lib/savedPlan";
 import { budgetCategories } from "../data/budgetCategories";
 
 const linkClass =
@@ -8,6 +9,8 @@ const linkClass =
 // category, and the copyright. `className` lets a page add room, e.g. for the results
 // page's fixed bar on phones. Marked dark so the see-through header turns sand over it.
 export default function SiteFooter({ className = "" }: { className?: string }) {
+  // "Plan my wedding" the first time, "Your plan" once there is one.
+  const plan = planEntry();
   return (
     <footer
       data-header-tone="dark"
@@ -34,8 +37,8 @@ export default function SiteFooter({ className = "" }: { className?: string }) {
             </h2>
             <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
               <li>
-                <Link to="/plan" className={linkClass}>
-                  Plan my wedding
+                <Link to={plan.to} className={linkClass}>
+                  {plan.hasPlan ? 'Your plan' : 'Plan my wedding'}
                 </Link>
               </li>
             </ul>
