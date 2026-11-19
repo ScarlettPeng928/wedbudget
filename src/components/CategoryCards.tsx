@@ -10,7 +10,8 @@ gsap.registerPlugin(ScrollTrigger, useGSAP);
 
 // Desktop with motion allowed: the section holds the screen while the vertical
 // scroll slides the row of cards sideways; once the last card is in view it lets go
-// and the page scrolls on. Phones and reduced motion: an ordinary row you swipe or
+// and the page scrolls on. Phones: a plain grid, two cards a row, scrolled down
+// with the page (the max-md: classes below). Desktop with reduced motion: an ordinary row you swipe or
 // scroll sideways.
 const PINNED = "(min-width: 768px) and (prefers-reduced-motion: no-preference)";
 
@@ -133,12 +134,12 @@ export default function CategoryCards() {
       <div className="w-full">
         <ul
           ref={track}
-          className="m-0 flex w-full list-none snap-x snap-mandatory gap-[clamp(16px,2vw,32px)] overflow-x-auto px-[max(clamp(16px,3vw,48px),calc((100vw-1440px)/2))] scroll-px-[max(clamp(16px,3vw,48px),calc((100vw-1440px)/2))] [scrollbar-width:none] motion-safe:md:w-max motion-safe:md:snap-none motion-safe:md:overflow-visible motion-safe:md:pl-[calc(50vw-clamp(220px,24vw,360px)/2)]"
+          className="m-0 flex w-full list-none snap-x snap-mandatory gap-[clamp(16px,2vw,32px)] overflow-x-auto px-[max(clamp(16px,3vw,48px),calc((100vw-1440px)/2))] scroll-px-[max(clamp(16px,3vw,48px),calc((100vw-1440px)/2))] [scrollbar-width:none] motion-safe:md:w-max motion-safe:md:snap-none motion-safe:md:overflow-visible motion-safe:md:pl-[calc(50vw-clamp(220px,24vw,360px)/2)] max-md:grid max-md:grid-cols-2 max-md:gap-x-4 max-md:gap-y-8 max-md:snap-none max-md:overflow-visible"
         >
           {budgetCategories.map((category) => (
             <li
               key={category.slug}
-              className="cat-card w-[min(72vw,360px)] shrink-0 snap-start md:w-[clamp(220px,24vw,360px)]"
+              className="cat-card w-[min(72vw,360px)] shrink-0 snap-start max-md:w-auto md:w-[clamp(220px,24vw,360px)]"
             >
               <Link
                 to={`/vendors/${category.slug}`}

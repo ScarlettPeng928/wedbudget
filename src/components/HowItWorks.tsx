@@ -43,7 +43,8 @@ export default function HowItWorks() {
   useGSAP(
     () => {
       const mm = gsap.matchMedia();
-      mm.add("(prefers-reduced-motion: no-preference)", () => {
+      // Desktop only: on phones the sections simply scroll, one after the other.
+      mm.add("(min-width: 768px) and (prefers-reduced-motion: no-preference)", () => {
         // The section is the trigger and stays put; only its content moves, so the
         // trigger's position (what the start and end are measured from) never shifts.
         gsap.fromTo(
