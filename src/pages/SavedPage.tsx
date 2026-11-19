@@ -9,6 +9,7 @@ import VisitCard from '../components/saved/VisitCard';
 import { planCategories, type PlanCategory } from '../data/planCategories';
 import { isUpcoming } from '../lib/calendar';
 import { formatNT, formatPriceRange } from '../lib/format';
+import { vendorHref, vendorLinkNote } from '../lib/vendorLinks';
 import { loadPlan } from '../lib/savedPlan';
 import { cityName } from '../data/cities';
 import { toggleSaved, useVendorPicks, type PickVendor } from '../lib/vendorPicks';
@@ -50,15 +51,43 @@ function VendorRow({
   // schedule) and no remove (see hasUpcomingVisit). Both come back when the visit is
   // deleted or has passed, for a next one (a tasting after the viewing).
   const hasUpcoming = visits.some(isUpcoming);
+  // Same destination as the vendor's card: its website, or a map search.
+  const href = vendorHref(vendor, category);
   return (
     <li className="border-t border-sand py-4">
       <div className="flex items-start gap-3 sm:items-center sm:gap-4">
-        <div className="aspect-4/3 w-16 shrink-0 overflow-hidden rounded-md bg-linen sm:w-20">
-          {vendor.imageUrl && <img src={vendor.imageUrl} alt="" loading="lazy" className="h-full w-full object-cover" />}
-        </div>
+        {/* The photo links too, but is skipped by the keyboard and screen readers
+            (the name is the link they get), so the vendor isn't announced twice. */}
+        <a
+          href={href ?? undefined}
+          target="_blank"
+          rel="noopener noreferrer"
+          tabIndex={-1}
+          aria-hidden="true"
+          className="group/photo aspect-4/3 w-16 shrink-0 overflow-hidden rounded-md bg-linen sm:w-20"
+        >
+          {vendor.imageUrl && (
+            <img
+              src={vendor.imageUrl}
+              alt=""
+              loading="lazy"
+              className="h-full w-full object-cover transition-[scale] duration-500 ease-out group-hover/photo:scale-110 motion-reduce:transition-none"
+            />
+          )}
+        </a>
         <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
           <div className="min-w-0">
-            <p className="m-0 truncate font-serif text-body">{vendor.name}</p>
+            <p className="m-0 truncate font-serif text-body">
+              <a
+                href={href ?? undefined}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-plum no-underline decoration-rosewood decoration-1 underline-offset-[0.2em] hover:underline"
+              >
+                {vendor.name}
+                <span className="sr-only">{vendorLinkNote(vendor)}</span>
+              </a>
+            </p>
             <p className="m-0 mt-0.5 text-small tabular-nums">
               <span className="text-plum">{formatPriceRange(vendor.priceMin, vendor.priceMax, vendor.priceUnit)}</span>
               {vendor.cityName && <span className="text-cocoa"> · {vendor.cityName}</span>}

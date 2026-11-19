@@ -48,6 +48,8 @@ export type VendorListRequest = {
   seed?: string;
   offset?: string;
   limit?: string;
+  // 'price-asc' or 'price-desc'; left out for the featured shuffle.
+  sort?: string;
 };
 
 // Up to 8 random vendors in one category (backend/SPEC.md 5.6).

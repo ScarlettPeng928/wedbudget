@@ -64,7 +64,7 @@ export default function SiteHeader({
   const buttonClass = darkTone ? buttonOnDark : buttonOnLight;
   // "Your plan" only appears once there is one to go back to.
   const hasPlan = loadPlan() !== null;
-  // "Saved vendors" likewise, once a vendor is saved.
+  // Home page: the bookmark appears once a vendor is saved.
   const picks = useVendorPicks();
   const hasPicks = Object.keys(picks).length > 0;
 
@@ -292,8 +292,8 @@ export default function SiteHeader({
           links end. It sits outside <header> because GSAP moves the header with a
           transform, which would pin a fixed child to the header. Always rendered so it
           can animate closed; hidden (and inert) until opened. Home and the plan
-          ("Plan my wedding" / "Your plan") aren't repeated here: the logo and the header
-          button already do that. */}
+          ("Plan my wedding" / "Your plan") and the saved vendors aren't repeated here: the
+          logo, the header button and the bookmark already lead there. */}
       <nav
         ref={menu}
         id="site-menu"
@@ -302,11 +302,6 @@ export default function SiteHeader({
         className="invisible fixed inset-x-0 top-0 z-[35] max-h-svh overflow-y-auto bg-cream px-[max(clamp(16px,3vw,48px),calc((100%-1440px)/2))] pt-[calc(clamp(64px,6vw,88px)+clamp(32px,5vh,56px))] pb-[clamp(40px,6vh,64px)] shadow-[0_24px_48px_-24px_rgb(44_17_26/0.3)]"
       >
         <div className="flex flex-col gap-[clamp(28px,4vh,40px)]">
-          {hasPicks && (
-            <NavLink to="/saved" onClick={() => closeMenu()} className={menuLinkClass}>
-              Saved vendors
-            </NavLink>
-          )}
           <div>
             <h2 className="menu-link mt-0 mb-[clamp(12px,2vh,20px)] font-sans text-label font-normal tracking-[0.05em] text-cocoa uppercase">
               Vendors

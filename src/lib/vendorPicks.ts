@@ -18,6 +18,9 @@ export type PickVendor = {
   imageUrl?: string | null;
   // City name, used as the place of a visit in the calendar.
   cityName?: string;
+  // The vendor's own site, where its name links (missing on demo vendors and on
+  // vendors saved before it was kept: those link to a map search instead).
+  websiteUrl?: string | null;
 };
 
 export type CategoryPicks = { saved: PickVendor[] };
@@ -85,8 +88,8 @@ export function toggleSaved(category: string, vendor: PickVendor) {
     if (rest.length) next[category] = { saved: rest };
     else delete next[category];
   } else {
-    const { id, name, priceMin, priceMax, priceUnit, imageUrl, cityName } = vendor;
-    next[category] = { saved: [...saved, { id, name, priceMin, priceMax, priceUnit, imageUrl, cityName }] };
+    const { id, name, priceMin, priceMax, priceUnit, imageUrl, cityName, websiteUrl } = vendor;
+    next[category] = { saved: [...saved, { id, name, priceMin, priceMax, priceUnit, imageUrl, cityName, websiteUrl }] };
   }
   write(next);
 }

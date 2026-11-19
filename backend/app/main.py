@@ -6,7 +6,7 @@ Then open http://localhost:8000/docs to try every endpoint in the browser.
 """
 
 import logging
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import Depends, FastAPI, Query, Request
 from fastapi.exceptions import RequestValidationError
@@ -190,6 +190,7 @@ def list_vendors(
     seed: Annotated[int | None, Query(ge=0, le=2_147_483_647)] = None,
     offset: Annotated[int, Query(ge=0, le=10_000)] = 0,
     limit: Annotated[int, Query(ge=1, le=rules.MAX_VENDORS_PER_REQUEST)] = rules.VENDORS_PER_PAGE,
+    sort: Literal['featured', 'price-asc', 'price-desc'] = 'featured',
 ):
     """Random vendors in one category for the vendors page. Leave out `city` for all of
     Taiwan, and `subcategory` for every kind of vendor in the category.
@@ -199,7 +200,12 @@ def list_vendors(
 
     Paging ("Show more"): pass the same `seed` with a growing `offset`. The seed fixes
     one shuffled order, so later pages continue it without repeats; a new seed (a new
-    visit) gives a new order. Without a seed, a fresh random pick each time."""
+    visit) gives a new order. Without a seed, a fresh random pick each time.
+
+    `sort`: 'featured' is that shuffle; 'price-asc' / 'price-desc' order by the
+    listed starting price per guest (a per-table price counts for 10 guests), so
+    venues priced per table and per guest compare fairly without a guest count.
+    Id breaks ties, so paging stays stable."""
     found = session.scalar(select(Category).where(Category.slug == category))
     if found is None:
         raise FieldError('category', FIELD_MESSAGES['category']['default'])
@@ -232,7 +238,14 @@ def list_vendors(
         )
         query = query.where(estimated <= budget)
 
-    if seed is None:
+    if sort != 'featured':
+        per_guest = case(
+            (Vendor.price_unit == 'table', Vendor.price_min / float(rules.GUESTS_PER_TABLE)),
+            else_=Vendor.price_min,
+        )
+        order = per_guest.asc() if sort == 'price-asc' else per_guest.desc()
+        query = query.order_by(order, Vendor.id).offset(offset).limit(limit)
+    elif seed is None:
         # NEWID() gives every row a random value, so sorting by it shuffles the vendors.
         query = query.order_by(func.newid()).limit(limit)
     else:

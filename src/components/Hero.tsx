@@ -95,12 +95,6 @@ export default function Hero() {
           className="absolute inset-x-0 top-0 -z-10 h-[clamp(120px,18vh,200px)] bg-linear-to-b from-cocoa/25 to-transparent"
           aria-hidden="true"
         />
-        {/* The bottom edge always fades into solid plum, the story's background, so the
-            two sections never meet at a hard line. It sits below the sunk title. */}
-        <div
-          className="absolute inset-x-0 bottom-0 -z-10 h-[clamp(72px,12vh,120px)] bg-linear-to-b from-transparent to-plum"
-          aria-hidden="true"
-        />
 
         {/* Same side gutter and 1440px cap as the header, so the title lines up with
             the menu button and the button with "Plan my wedding" on any screen. */}

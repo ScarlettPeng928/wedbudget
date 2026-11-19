@@ -2,6 +2,7 @@ import { useEffect, useId, useState } from 'react';
 import { withCommas } from '../lib/format';
 import PresetCombobox from '../components/plan/PresetCombobox';
 import CitySelect from '../components/plan/CitySelect';
+import OptionSelect from '../components/plan/OptionSelect';
 import { Link, useParams, useSearchParams } from 'react-router';
 import SiteHeader from '../components/SiteHeader';
 import SiteFooter from '../components/SiteFooter';
@@ -24,6 +25,14 @@ const BUDGET_PRESETS: Record<string, number[]> = {
   favors: [10_000, 20_000, 40_000, 60_000, 100_000],
 };
 
+// Sort orders. Featured is the default shuffle: no recommendation is implied.
+// Price sorts by the listed starting price per guest (backend list_vendors).
+const SORTS = [
+  { value: 'featured', label: 'Featured' },
+  { value: 'price-asc', label: 'Price: low to high' },
+  { value: 'price-desc', label: 'Price: high to low' },
+];
+
 // The region value for no city filter.
 const ALL_TAIWAN = 'all';
 
@@ -43,6 +52,7 @@ function CategoryVendors({ category }: { category: BudgetCategory }) {
   // With a saved plan, the region starts at the plan's city.
   const [planCity] = useState(() => loadPlan()?.request.city);
   const regionId = useId();
+  const sortId = useId();
   const [planGuests] = useState(() => loadPlan()?.request.guestCount);
   const [planAmount] = useState(() => loadPlan()?.allocations[category.slug]);
   const presets = [...new Set([...(BUDGET_PRESETS[category.slug] ?? []), ...(planAmount ? [planAmount] : [])])].sort((a, b) => a - b);
@@ -63,7 +73,10 @@ function CategoryVendors({ category }: { category: BudgetCategory }) {
   const guests = digits(params.get('guests')) ?? (planGuests ? String(planGuests) : undefined);
   const budget = guests ? digits(params.get('budget')) : undefined;
 
-  const list = useVendorList({ category: category.slug, city, subcategory, budget, guests });
+  const sortParam = params.get('sort');
+  const sort = SORTS.some((o) => o.value === sortParam) && sortParam !== 'featured' ? sortParam! : undefined;
+
+  const list = useVendorList({ category: category.slug, city, subcategory, budget, guests, sort });
   // New vendors on their way: the old ones stay, faded, until they arrive.
   const updating = list.status === 'loading' && list.vendors !== null;
 
@@ -151,6 +164,20 @@ function CategoryVendors({ category }: { category: BudgetCategory }) {
                   }
                 />
               )}
+              {/* Sort, in the same frame and drop-down as Region. */}
+              <div className="relative inline-flex items-center rounded-sm border border-plum">
+                <label htmlFor={sortId} className="pl-4 text-small text-cocoa">
+                  Sort
+                </label>
+                <span className="min-w-[19ch] py-2 pr-3 pl-2 [&_button:focus-visible]:outline-2 [&_button:focus-visible]:outline-offset-4 [&_button:focus-visible]:outline-plum">
+                  <OptionSelect
+                    id={sortId}
+                    value={sort ?? 'featured'}
+                    onChange={(value) => setParam('sort', value === 'featured' ? undefined : value)}
+                    options={SORTS}
+                  />
+                </span>
+              </div>
             </div>
             {hasPlan && (
               // The arrow appears on hover or press, outside the text so nothing shifts

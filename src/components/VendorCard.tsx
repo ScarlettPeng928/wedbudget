@@ -1,28 +1,9 @@
 import { useRef, type ReactNode, type RefObject } from 'react';
 import { flyToSaved } from '../animations/flyToSaved';
+import { vendorHref, vendorLinkNote } from '../lib/vendorLinks';
 import { isSaved, toggleSaved, useVendorPicks, type PickVendor } from '../lib/vendorPicks';
 import { useVisits } from '../lib/visits';
 import { hasUpcomingVisit } from '../lib/calendar';
-
-// Until a vendor has its own website (demo vendors don't), the card opens a Google
-// Maps search for real vendors of the same kind in the same city. Searched in
-// Chinese, which finds Taiwanese businesses far better. No business is named or
-// linked as if it were this vendor.
-const MAP_SEARCH: Record<string, string> = {
-  venues: '婚宴會館',
-  photography: '婚禮攝影',
-  attire: '婚紗禮服',
-  'bridal-styling': '新娘秘書',
-  hosting: '婚禮主持',
-  favors: '喜餅',
-};
-
-function mapSearchUrl(category: string | undefined, cityName: string | undefined) {
-  const keyword = category ? MAP_SEARCH[category] : undefined;
-  if (!keyword) return null;
-  const query = cityName ? `${keyword} ${cityName}` : `${keyword} Taiwan`;
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
-}
 
 type CardVendor = PickVendor & {
   imageUrl: string | null;
@@ -38,11 +19,11 @@ export default function VendorCard({ vendor, category, children }: { vendor: Car
   // The photo, which flies to the header's bookmark when the vendor is saved.
   const photo = useRef<HTMLDivElement>(null);
 
-  // The vendor's own website, or else the map search above. The photo and the name
+  // The vendor's own website, or else a map search (lib/vendorLinks). The photo and the name
   // each link there (the bookmark sits between them in the layout, and a button
   // inside a link is invalid HTML); the photo's link is skipped by the keyboard and
   // screen readers so the vendor isn't announced twice.
-  const href = vendor.websiteUrl ?? mapSearchUrl(category, vendor.city?.name);
+  const href = vendorHref({ websiteUrl: vendor.websiteUrl, cityName: vendor.city?.name }, category);
   const link = (content: ReactNode, secondary = false) =>
     href ? (
       <a
@@ -87,9 +68,7 @@ export default function VendorCard({ vendor, category, children }: { vendor: Car
               {/* Opens another site in a new tab: screen readers hear where it goes. */}
               {href && (
                 <>
-                  <span className="sr-only">
-                    {vendor.websiteUrl ? ' (website, opens in a new tab)' : ' (similar vendors on Google Maps, opens in a new tab)'}
-                  </span>
+                  <span className="sr-only">{vendorLinkNote(vendor)}</span>
                 </>
               )}
             </p>,

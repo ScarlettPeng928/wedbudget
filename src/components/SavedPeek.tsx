@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router';
 import { planCategories } from '../data/planCategories';
 import { formatPriceRange } from '../lib/format';
+import { vendorHref, vendorLinkNote } from '../lib/vendorLinks';
 import { toggleSaved, useVendorPicks } from '../lib/vendorPicks';
 import { useVisits } from '../lib/visits';
 import { hasUpcomingVisit } from '../lib/calendar';
@@ -103,11 +104,30 @@ export default function SavedPeek({ onDark }: { onDark: boolean }) {
                   <ul className="m-0 flex list-none flex-col gap-2 p-0">
                     {picks[category.slug].saved.map((vendor) => (
                       <li key={vendor.id} className="flex items-center gap-3">
-                        <div className="aspect-4/3 w-12 shrink-0 overflow-hidden rounded-md bg-linen">
+                        {/* Photo and name link like the vendor's card (lib/vendorLinks); the
+                            photo's link is skipped by the keyboard and screen readers. */}
+                        <a
+                          href={vendorHref(vendor, category.slug) ?? undefined}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          tabIndex={-1}
+                          aria-hidden="true"
+                          className="aspect-4/3 w-12 shrink-0 overflow-hidden rounded-md bg-linen"
+                        >
                           {vendor.imageUrl && <img src={vendor.imageUrl} alt="" loading="lazy" className="h-full w-full object-cover" />}
-                        </div>
+                        </a>
                         <div className="min-w-0 flex-1">
-                          <p className="m-0 truncate font-serif text-body">{vendor.name}</p>
+                          <p className="m-0 truncate font-serif text-body">
+                            <a
+                              href={vendorHref(vendor, category.slug) ?? undefined}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-plum no-underline decoration-rosewood decoration-1 underline-offset-[0.2em] hover:underline"
+                            >
+                              {vendor.name}
+                              <span className="sr-only">{vendorLinkNote(vendor)}</span>
+                            </a>
+                          </p>
                           <p className="m-0 truncate text-small text-plum tabular-nums">
                             {formatPriceRange(vendor.priceMin, vendor.priceMax, vendor.priceUnit)}
                           </p>
