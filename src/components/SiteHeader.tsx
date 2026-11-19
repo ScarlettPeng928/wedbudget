@@ -271,7 +271,9 @@ export default function SiteHeader({
                 }`}
               >
                 <Link to="/plan" className={buttonClass}>
-                  {hasPlan ? 'Your plan' : 'Plan my wedding'}
+                  {/* Phones: the short label, so the bar fits beside the logo. */}
+                  <span className="md:hidden">Plan</span>
+                  <span className="max-md:hidden">{hasPlan ? 'Your plan' : 'Plan my wedding'}</span>
                 </Link>
               </span>
             )}
